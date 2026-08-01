@@ -388,6 +388,22 @@ public class EntityNavigationController implements AutoCloseable {
 
     public void tick() {
         tick++;
+        // Chunk unloading removes non-player entities before owners necessarily
+        // discard their controllers. Never let a late search result or movement
+        // command touch Minestom's detached collision state.
+        if (entity.isRemoved() || entity.getInstance() == null) {
+            if (pending != null) pending.cancel(true);
+            pending = null;
+            if (state == NavigationState.IDLE) {
+                state = NavigationState.CANCELLED;
+            } else if (state != NavigationState.COMPLETED
+                    && state != NavigationState.CANCELLED
+                    && state != NavigationState.STUCK
+                    && state != NavigationState.FAILED) {
+                transition(NavigationState.CANCELLED);
+            }
+            return;
+        }
         // A landed search is read before anything decides to replace it, so
         // completed work is never discarded on the tick it arrives.
         acceptPending();

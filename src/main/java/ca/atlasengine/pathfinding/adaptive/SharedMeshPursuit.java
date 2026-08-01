@@ -218,7 +218,7 @@ public final class SharedMeshPursuit implements AutoCloseable {
         EntityTraversalState state = new EntityTraversalState(
                 actor.isOnGround(), inWater, standable,
                 instance.getCachedDimensionType().minY(),
-                instance.getCachedDimensionType().maxY(), List.of());
+                instance.getCachedDimensionType().maxY() - 1, List.of());
         NavigationRequest request = NavigationRequest.builder(
                         instance, start, destination,
                         actor.getBoundingBox(), profile)

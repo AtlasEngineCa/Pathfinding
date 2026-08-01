@@ -60,6 +60,7 @@ class GroundNodeEvaluator extends NodeEvaluator {
     final EntityTraversalState entityState;
     final SearchControl control;
     final int minY;
+    final int maxY;
 
     private final TerrainClassifier classifier = new TerrainClassifier();
     private final CoordinateNodeMap nodes = new CoordinateNodeMap();
@@ -90,6 +91,7 @@ class GroundNodeEvaluator extends NodeEvaluator {
         this.influences = List.copyOf(influences);
         this.entityState = entityState;
         this.minY = entityState.minBuildHeight();
+        this.maxY = entityState.maxBuildHeight();
         this.control = control;
 
         boolean opensBlocks = this.profile.canPassDoors()
@@ -284,6 +286,21 @@ class GroundNodeEvaluator extends NodeEvaluator {
      */
     SearchNode accepted(int x, int y, int z) {
         SearchNode node = node(x, y, z);
+        double lower = y + box.relativeStart().y();
+        double upper = y + box.relativeEnd().y();
+        boolean outside = lower < minY || upper > maxY + 1.0;
+        // Only a partial support surface in the highest usable block needs an
+        // exact collision-floor read. Ordinary nodes stay on the cheap path.
+        if (!outside && upper > maxY) {
+            double floor = floorLevel(x, y, z);
+            outside = floor + box.relativeEnd().y() > maxY + 1.0;
+        }
+        if (outside) {
+            node.type = TerrainType.BLOCKED;
+            node.hardBlocked = true;
+            node.malus = -1;
+            return node;
+        }
         TerrainType type = type(x, y, z);
         node.type = type;
         double malus = profile.malus(type);
@@ -323,6 +340,10 @@ class GroundNodeEvaluator extends NodeEvaluator {
     }
 
     TerrainType classify(int x, int y, int z) {
+        if (y + box.relativeStart().y() < minY
+                || y + box.relativeEnd().y() > maxY + 1.0) {
+            return TerrainType.BLOCKED;
+        }
         return classifier.classifyAnchored(
                 blocks, x, y, z, box, profile, control);
     }

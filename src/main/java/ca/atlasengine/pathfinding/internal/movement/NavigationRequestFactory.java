@@ -94,7 +94,7 @@ public final class NavigationRequestFactory {
         return new EntityTraversalState(
                 entity.isOnGround(), entityInWater, standable,
                 instance.getCachedDimensionType().minY(),
-                instance.getCachedDimensionType().maxY(),
+                instance.getCachedDimensionType().maxY() - 1,
                 startCandidates(profile));
     }
 

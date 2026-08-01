@@ -20,7 +20,7 @@ jmh {
 }
 
 group = "ca.atlasengine"
-version = "10.2.0"
+version = "10.3.0"
 
 repositories {
     mavenCentral()

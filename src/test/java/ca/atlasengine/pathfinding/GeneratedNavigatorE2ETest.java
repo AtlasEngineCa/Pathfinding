@@ -286,6 +286,35 @@ class GeneratedNavigatorE2ETest {
     }
 
     @Test
+    void generatedStatefulWorldAndTargetSchedulesRemainLive(Env env) {
+        Instance instance = prepared(env);
+        try (var service = new AsyncEntityPathfindingService(1, 4)) {
+            assertAll("generated stateful schedules", cases("stateful", index -> {
+                long seed = seed(11, index);
+                SplittableRandom random = new SplittableRandom(seed);
+                reset(instance);
+                int firstTick = random.nextInt(2, 10);
+                int wallTick = firstTick + random.nextInt(3, 10);
+                int releaseTick = wallTick + random.nextInt(4, 14);
+                int side = random.nextBoolean() ? -3 : 3;
+                int wallX = random.nextInt(5, 8);
+                instance.setBlock(2, 40, 0, Block.STONE_SLAB
+                        .withProperty("type", "bottom"));
+                instance.setBlock(3, 40, 0, Block.OAK_STAIRS
+                        .withProperty("facing", random.nextBoolean() ? "east" : "west")
+                        .withProperty("half", "bottom")
+                        .withProperty("shape", "straight"));
+                String fixture = "firstTick=" + firstTick + ", wallTick="
+                        + wallTick + ", releaseTick=" + releaseTick
+                        + ", side=" + side + ", wallX=" + wallX;
+                runStatefulSchedule(env, instance, service,
+                        firstTick, wallTick, releaseTick, side, wallX,
+                        seed, fixture);
+            }));
+        }
+    }
+
+    @Test
     void mirroredMazesPreserveReachability(Env env) {
         Instance instance = prepared(env);
         try (var service = new AsyncEntityPathfindingService(2, 32)) {
@@ -722,6 +751,57 @@ class GeneratedNavigatorE2ETest {
             assertEquals(NavigationState.COMPLETED, controller.state(),
                     () -> label + ", final=" + mob.getPosition() + ", nodes=" + controller.nodes());
             assertNoLongFreeze(mob.positions, 180, label);
+        } finally {
+            mob.remove();
+        }
+    }
+
+    private static void runStatefulSchedule(
+            Env env, Instance instance, AsyncEntityPathfindingService service,
+            int firstTick, int wallTick, int releaseTick, int side, int wallX,
+            long seed, String fixture) throws Exception {
+        TrackedCreature mob = new TrackedCreature(EntityType.ZOMBIE);
+        String label = label(seed, fixture);
+        try {
+            mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+            EntityNavigationController controller =
+                    EntityNavigationController.builtin(mob, service, 0.2);
+            mob.controller = controller;
+            controller.moveTo(new Pos(13.5, 40, 0.5));
+            for (int tick = 0; tick < 2_500; tick++) {
+                if (tick == firstTick) {
+                    controller.moveTo(new Pos(11.5, 40, side + 0.5));
+                }
+                if (tick == wallTick) {
+                    for (int z = -5; z <= 5; z++) {
+                        if (z == -side) continue;
+                        for (int y = 40; y <= 43; y++) {
+                            instance.setBlock(wallX, y, z, Block.STONE);
+                        }
+                    }
+                    controller.onBlockChanged(new Pos(wallX, 40, 0));
+                    controller.moveTo(new Pos(13.5, 40, -side + 0.5));
+                }
+                if (tick == releaseTick) {
+                    for (int y = 40; y <= 43; y++) {
+                        for (int z = -1; z <= 1; z++) {
+                            instance.setBlock(wallX, y, z, Block.AIR);
+                        }
+                    }
+                    controller.onBlockChanged(new Pos(wallX, 40, 0));
+                    controller.moveTo(new Pos(13.5, 40, 0.5));
+                }
+                env.tick();
+                if (controller.state() == NavigationState.COMPUTING) Thread.sleep(1);
+                if (tick > releaseTick && (controller.state() == NavigationState.COMPLETED
+                        || controller.state() == NavigationState.STUCK
+                        || controller.state() == NavigationState.FAILED)) break;
+            }
+            assertEquals(NavigationState.COMPLETED, controller.state(),
+                    () -> label + ", final=" + mob.getPosition()
+                            + ", nodeIndex=" + controller.nodeIndex()
+                            + ", nodes=" + controller.nodes());
+            assertNoLongFreeze(mob.positions, 240, label);
         } finally {
             mob.remove();
         }
