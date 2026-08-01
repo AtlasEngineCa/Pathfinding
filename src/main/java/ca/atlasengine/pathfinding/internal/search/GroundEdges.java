@@ -134,6 +134,10 @@ final class GroundEdges {
                               TerrainType sourceType) {
         SearchNode above = resolve(x, y + 1, z, jumpSize - 1,
                 sourceFloor, direction, sourceType);
+        if (above != null && evaluator.footprintFloorLevel(
+                above.x, above.y, above.z) - sourceFloor > jumpHeight()) {
+            return null;
+        }
         if (above == null || box.width() >= 1
                 || (above.type != TerrainType.OPEN
                 && above.type != TerrainType.WALKABLE)) return above;

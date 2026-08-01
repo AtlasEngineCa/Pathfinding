@@ -3,6 +3,7 @@ package ca.atlasengine.pathfinding.examples;
 import net.kyori.adventure.text.Component;
 import ca.atlasengine.pathfinding.EntityNavigationController;
 import ca.atlasengine.pathfinding.NavigationState;
+import ca.atlasengine.pathfinding.PathDebugRenderer;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.EntityCreature;
@@ -18,6 +19,8 @@ import java.util.function.Supplier;
  * threads only ever read the immutable request a controller submitted.</p>
  */
 public final class DemoMob extends EntityCreature implements AutoCloseable {
+    private static final PathDebugRenderer DEBUG_PATH = new PathDebugRenderer();
+
     private EntityNavigationController controller;
     private Supplier<Point> quarry;
 
@@ -59,6 +62,7 @@ public final class DemoMob extends EntityCreature implements AutoCloseable {
         if (controller != null) {
             if (quarry != null) controller.moveTo(quarry.get());
             controller.tick();
+            DEBUG_PATH.render(controller);
         }
         super.update(time);
     }

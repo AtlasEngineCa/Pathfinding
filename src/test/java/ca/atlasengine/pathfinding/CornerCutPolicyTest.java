@@ -1,21 +1,23 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.internal.movement.RouteGeometry;
+import ca.atlasengine.pathfinding.internal.movement.RouteGeometry;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.entity.EntityType;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CornerCutPolicyTest {
     @Test
-    void frogRetainsWaterBorderWaypointWhileOtherMobsMayCutIt() {
-        assertFalse(RouteGeometry.permitsCornerCut(
-                EntityType.FROG, TerrainType.WATER_BORDER));
-        assertTrue(RouteGeometry.permitsCornerCut(
-                EntityType.AXOLOTL, TerrainType.WATER_BORDER));
+    void everyMobRetainsShorelineWaypoints() {
+        for (EntityType type : new EntityType[]{
+                EntityType.ZOMBIE, EntityType.FROG, EntityType.AXOLOTL
+        }) {
+            assertFalse(RouteGeometry.permitsCornerCut(
+                    type, TerrainType.WATER_BORDER));
+        }
     }
 
     @Test

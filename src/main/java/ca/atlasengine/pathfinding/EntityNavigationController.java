@@ -94,6 +94,8 @@ public class EntityNavigationController implements AutoCloseable {
     private PathStop routeStop = PathStop.NOT_SEARCHED;
     private boolean targetUnreachable;
     private boolean unreachableRecorded;
+    private boolean partialContinuationPrefetched;
+    private boolean waypointRecoveryAttempted;
     private int activePlatformJumpNode = -1;
     private double activePlatformJumpSpeed;
     private int platformJumpAlignmentNode = -1;
@@ -288,6 +290,7 @@ public class EntityNavigationController implements AutoCloseable {
         travelRequired = !goalReached();
         targetUnreachable = false;
         unreachableRecorded = false;
+        waypointRecoveryAttempted = false;
         routeStop = PathStop.NOT_SEARCHED;
         activeInfluences = List.copyOf(influences);
         activeModifiers = modifiers;
@@ -352,6 +355,7 @@ public class EntityNavigationController implements AutoCloseable {
         travelRequired = !goalReached();
         targetUnreachable = false;
         unreachableRecorded = false;
+        waypointRecoveryAttempted = false;
         // A replayed plan carries a status but no search reason, so the
         // chaining rules fall back to the terminal radius for it.
         routeStop = PathStop.NOT_SEARCHED;
@@ -406,6 +410,7 @@ public class EntityNavigationController implements AutoCloseable {
             return;
         }
         if (state == NavigationState.FOLLOWING || state == NavigationState.PARTIAL) {
+            prefetchPartialContinuation();
             followPath();
         } else if (wallClimberFallback && state != NavigationState.COMPUTING) {
             WALK.move(movementContext, target, true);
@@ -533,8 +538,23 @@ public class EntityNavigationController implements AutoCloseable {
     private boolean spliceInto(List<PathNode> landed, boolean truncatedForSun) {
         RouteSplicer.Join join = splicer.join(nodes, nodeIndex, landed, tick);
         if (join == null) return false;
+        int joinedIndex = nodeIndex - join.offset();
+        Point trackingPosition = geometry.waypointTrackingPosition();
+        // The follower can physically shortcut beyond an armed seam without
+        // consuming every graph waypoint leading to it. In that case index
+        // rebasing is arithmetically valid but the retained current waypoint
+        // lies behind the entity, sometimes across the wall it just passed.
+        // Refuse that stale prefix and let adoption request a route from the
+        // entity's live position instead of steering backwards into it.
+        if (joinedIndex < 0 || joinedIndex >= join.nodes().size()
+                || trackingPosition.distance(
+                join.nodes().get(joinedIndex).asVec()) > startTolerance()
+                || !geometry.canSweepTo(trackingPosition,
+                join.nodes().get(joinedIndex).asVec())) {
+            return false;
+        }
         nodes = join.nodes();
-        nodeIndex -= join.offset();
+        nodeIndex = joinedIndex;
         activePlatformJumpNode = rebase(activePlatformJumpNode, join.offset());
         platformJumpAlignmentNode =
                 rebase(platformJumpAlignmentNode, join.offset());
@@ -641,6 +661,7 @@ public class EntityNavigationController implements AutoCloseable {
         observeSearchLanding();
         routeStop = path.stop();
         targetUnreachable = false;
+        partialContinuationPrefetched = false;
         PathPostProcessor.Result processed = postProcess(path.nodes());
         boolean routed = path.status() == PathStatus.FOUND
                 || path.status() == PathStatus.PARTIAL
@@ -696,6 +717,53 @@ public class EntityNavigationController implements AutoCloseable {
         recomputePath(RouteReplanEvent.Reason.PARTIAL_CONTINUATION);
     }
 
+    /**
+     * Starts the next bounded segment while this one still has enough route to
+     * cover the expected search wait. The accepted tail remains active and the
+     * landed result uses the normal splice path, so computation never creates
+     * an intentional stop at a partial endpoint.
+     */
+    private void prefetchPartialContinuation() {
+        if (state != NavigationState.PARTIAL
+                || wallClimberFallback || partialContinuationPrefetched
+                || pending != null
+                || replanRequested || target == null || nodes.isEmpty()
+                || nodeIndex >= nodes.size() || pathTruncatedForSun) {
+            return;
+        }
+        double safetyTail = Math.max(8,
+                (observedLatencyTicks() + 2) * movementPerTick);
+        if (remainingRouteDistance() > safetyTail) return;
+
+        PathNode endpoint = nodes.getLast();
+        Point projected = endpoint.asVec();
+        partialContinuationPrefetched = true;
+        switch (replanner.continueLongPartialRoute(
+                projected, target, nodes, routeStop)) {
+            case WIDEN -> {
+                replanner.widen();
+                recomputePath(RouteReplanEvent.Reason.PARTIAL_CONTINUATION);
+            }
+            case REPLAN ->
+                    recomputePath(RouteReplanEvent.Reason.PARTIAL_CONTINUATION);
+            case STOP -> {
+                // The endpoint remains usable. Terminal state is published
+                // only after the follower actually consumes it.
+            }
+        }
+    }
+
+    private double remainingRouteDistance() {
+        double remaining = 0;
+        Point cursor = entity.getPosition();
+        for (int index = nodeIndex; index < nodes.size(); index++) {
+            Point next = nodes.get(index).asVec();
+            remaining += cursor.distance(next);
+            cursor = next;
+        }
+        return remaining;
+    }
+
     private NavigationState fallbackState(NavigationState terminal) {
         return wallClimberFallback ? NavigationState.PARTIAL : terminal;
     }
@@ -743,14 +811,29 @@ public class EntityNavigationController implements AutoCloseable {
         boolean climbableWaypoint = geometry.isClimbableWaypoint(node);
         PathNode next = nodeIndex + 1 < nodes.size()
                 ? nodes.get(nodeIndex + 1) : null;
-        if (geometry.reachedWaypoint(node, waypoint, position, climbableWaypoint)
+        if (geometry.reachedWaypoint(
+                node, next, waypoint, position, climbableWaypoint)
                 || geometry.canSkipAheadOf(node, next, position)) {
             consumeWaypoint();
             return;
         }
         progress.armWaypointTimeout(position, waypoint);
         driveWaypointMovement(node, waypoint, climbableWaypoint);
-        if (progress.waypointTimedOut()) transition(NavigationState.STUCK);
+        if (progress.waypointTimedOut()) {
+            if (!waypointRecoveryAttempted) {
+                waypointRecoveryAttempted = true;
+                splicer.disarm();
+                spliceSuppressed = true;
+                nodes = List.of();
+                nodeIndex = 0;
+                resetRoute();
+                stopDrivenMotion();
+                transition(NavigationState.COMPUTING);
+                recomputePath(RouteReplanEvent.Reason.REQUESTED);
+            } else {
+                transition(NavigationState.STUCK);
+            }
+        }
     }
 
     private void finishConsumedRoute() {
@@ -759,6 +842,11 @@ public class EntityNavigationController implements AutoCloseable {
             return;
         }
         if (state == NavigationState.PARTIAL) {
+            if (pending != null || replanRequested) {
+                transition(NavigationState.COMPUTING);
+                stopDrivenMotion();
+                return;
+            }
             if (wallClimberFallback) {
                 WALK.move(movementContext, target, true);
                 return;

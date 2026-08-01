@@ -24,7 +24,7 @@ class TerrainPolicyTest {
         assertEquals(0, TerrainCosts.baseline(TerrainType.WALKABLE));
         assertEquals(-1, TerrainCosts.baseline(TerrainType.LAVA));
         assertEquals(8, TerrainCosts.baseline(TerrainType.WATER));
-        assertEquals(8, TerrainCosts.baseline(TerrainType.WATER_BORDER));
+        assertEquals(0, TerrainCosts.baseline(TerrainType.WATER_BORDER));
         assertEquals(8, TerrainCosts.baseline(TerrainType.FIRE_IN_NEIGHBOR));
         assertEquals(16, TerrainCosts.baseline(TerrainType.FIRE));
         assertEquals(-1, TerrainCosts.baseline(TerrainType.DAMAGING));

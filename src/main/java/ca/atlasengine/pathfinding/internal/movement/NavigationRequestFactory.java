@@ -45,7 +45,7 @@ public final class NavigationRequestFactory {
         return NavigationRequest.builder(instance, start, destination, box,
                         snapshotRailState(profile, instance, start))
                 .maxPathLength(searchRange)
-                .reachRange(1)
+                .reachRange(0)
                 .maxVisitedMultiplier(searchRangeMultiplier)
                 .influences(influences)
                 .entityState(snapshotEntityState(profile, instance, entityInWater))

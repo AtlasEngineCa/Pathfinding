@@ -164,7 +164,7 @@ class AmphibiousPathfinderTest {
         assertSame(MobTraversalProfile.FROG, frog);
         assertEquals(4, frog.malus(TerrainType.WATER));
         assertEquals(0, frog.malus(TerrainType.WALKABLE));
-        assertEquals(8, frog.malus(TerrainType.WATER_BORDER));
+        assertEquals(0, frog.malus(TerrainType.WATER_BORDER));
 
         PathResult result = find(waterChimney(), new Vec(0.5, 0.5, 0.5),
                 new Vec(0.5, 4.5, 0.5), EntityType.FROG, List.of());
@@ -174,7 +174,7 @@ class AmphibiousPathfinderTest {
                 "search-local WATER malus must not leak into the mob profile");
         assertEquals(0, frog.malus(TerrainType.WALKABLE),
                 "search-local WALKABLE malus must not leak into the mob profile");
-        assertEquals(8, frog.malus(TerrainType.WATER_BORDER),
+        assertEquals(0, frog.malus(TerrainType.WATER_BORDER),
                 "search-local WATER_BORDER malus must not leak into the mob profile");
     }
 

@@ -2,6 +2,7 @@ package ca.atlasengine.pathfinding.adaptive;
 
 import net.minestom.server.instance.block.Block;
 import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.internal.EntityTargets;
 import ca.atlasengine.pathfinding.internal.adaptive.TargetCell;
 import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.EntityNavigationController;
@@ -131,7 +132,7 @@ public final class SharedMeshPursuit implements AutoCloseable {
             controller.suppressNextSplice();
             submit();
         } else {
-            if (!TargetCell.of(target.getPosition())
+            if (!TargetCell.of(EntityTargets.supportedPosition(target))
                     .equals(requestedTargetCell)) replanRequested = true;
             if (replanRequested && currentTick >= earliestReplanTick
                     && searchSettledOrAbandoned()) submit();
@@ -208,7 +209,8 @@ public final class SharedMeshPursuit implements AutoCloseable {
         // Plan from where the actor will stand when this search lands, not
         // from where it stands now. The follower arms the matching splice and
         // hands back the actor's own position whenever it cannot carry one.
-        Point start = controller.planningStart(target.getPosition());
+        Point destination = EntityTargets.supportedPosition(target);
+        Point start = controller.planningStart(destination);
         boolean inWater = BlockTraversalData.hasWaterFluid(
                 instance.getBlock(start));
         Set<Block> standable = profile.mobProfile().standsOnLava()
@@ -218,11 +220,11 @@ public final class SharedMeshPursuit implements AutoCloseable {
                 instance.getCachedDimensionType().minY(),
                 instance.getCachedDimensionType().maxY(), List.of());
         NavigationRequest request = NavigationRequest.builder(
-                        instance, start, target.getPosition(),
+                        instance, start, destination,
                         actor.getBoundingBox(), profile)
                 .maxPathLength(range).nodeSearchRange(range)
                 .influences(influences).entityState(state).build();
-        requestedTargetCell = TargetCell.of(target.getPosition());
+        requestedTargetCell = TargetCell.of(destination);
         planning = system.sharedMesh().plan(SharedMeshRequest.builder(request).actor(actor.getUuid()).target(target.getUuid()).worldRevision(worldRevision).currentTick(currentTick).build());
         submittedTick = currentTick;
         consumed = false;

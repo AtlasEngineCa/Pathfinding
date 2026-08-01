@@ -12,6 +12,8 @@ import java.util.List;
 
 /** {@code /nav <demo>}: every capability, driven from chat. */
 public final class NavCommand extends Command {
+    private static final int MAX_CROWD_SIZE = 10_000;
+
     private static final List<String> USAGE = List.of(
             "walk    a zombie routes the maze to a point",
             "chase   a zombie pursues you, retargeting every tick",
@@ -21,6 +23,8 @@ public final class NavCommand extends Command {
             "swim    a cod on the three-dimensional swim graph",
             "fly     a bee on the flying graph",
             "custom  a mob composed from profile, body, terrain, influence",
+            "gauntlet  one route combining ledges, steps, doors and a jump",
+            "dynamic  a long maze route intended for live block edits",
             "crowd <n>  n pursuers planning through the shared mesh",
             "shed    what backpressure looks like to a caller",
             "metrics searches, latency, mesh hit rate, stall rate",
@@ -34,7 +38,8 @@ public final class NavCommand extends Command {
 
         var demo = ArgumentType.Word("demo").from(
                 "walk", "chase", "jump", "doors", "climb", "swim", "fly",
-                "custom", "crowd", "shed", "metrics", "stop", "help");
+                "custom", "gauntlet", "dynamic", "crowd", "shed",
+                "metrics", "stop", "help");
         var count = ArgumentType.Integer("count");
 
         setDefaultExecutor((sender, context) -> help(sender));
@@ -59,7 +64,10 @@ public final class NavCommand extends Command {
             case "swim" -> Demos.swim(session);
             case "fly" -> Demos.fly(session);
             case "custom" -> Demos.custom(session);
-            case "crowd" -> Demos.crowd(session, Math.clamp(count, 1, 64));
+            case "gauntlet" -> Demos.gauntlet(session);
+            case "dynamic" -> Demos.dynamic(session);
+            case "crowd" -> Demos.crowd(
+                    session, Math.clamp(count, 1, MAX_CROWD_SIZE));
             case "shed" -> Demos.shed(session);
             case "metrics" -> Demos.metrics(session);
             case "stop" -> Demos.stop(session);

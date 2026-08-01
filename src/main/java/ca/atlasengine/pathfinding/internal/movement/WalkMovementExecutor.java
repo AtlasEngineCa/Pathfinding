@@ -41,7 +41,14 @@ public final class WalkMovementExecutor implements MovementExecutor {
         double dx = destination.x() - position.x();
         double dz = destination.z() - position.z();
         double horizontal = Math.hypot(dx, dz);
-        if (horizontal < ARRIVED_EPSILON) return;
+        if (horizontal < ARRIVED_EPSILON) {
+            if (context.executionMode()
+                    == MovementExecutionMode.PHYSICS_VELOCITY) {
+                Vec velocity = entity.getVelocity();
+                entity.setVelocity(new Vec(0, velocity.y(), 0));
+            }
+            return;
+        }
         double amount = Math.min(context.movementPerTick(), horizontal);
         Vec movement = new Vec(dx / horizontal * amount, 0, dz / horizontal * amount);
         context.face(dx, destination.y() - position.y(), dz, false);
@@ -70,7 +77,8 @@ public final class WalkMovementExecutor implements MovementExecutor {
             if (climbOnCollision && horizontalCollision) {
                 nextVelocity = nextVelocity.withY(CLIMB_IMPULSE);
             } else if (supported && horizontalCollision) {
-                Pos stepped = steppedOverObstruction(entity, movement, probe);
+                Pos stepped = steppedOverObstruction(
+                        entity, movement, probe, stepSweepHeight(context));
                 if (stepped != null) {
                     entity.refreshPosition(stepped);
                     nextVelocity = Vec.ZERO;
@@ -92,7 +100,8 @@ public final class WalkMovementExecutor implements MovementExecutor {
                 physics.collisionX() || physics.collisionZ();
         boolean supported = entity.isOnGround() || context.hasSupportBelow();
         Pos stepped = horizontalCollision && supported
-                ? steppedOverObstruction(entity, movement, physics) : null;
+                ? steppedOverObstruction(entity, movement, physics,
+                stepSweepHeight(context)) : null;
         entity.refreshPosition(
                 stepped != null ? stepped : physics.newPosition());
         if (stepped != null) return;
@@ -121,20 +130,26 @@ public final class WalkMovementExecutor implements MovementExecutor {
      * Where a grounded entity ends up by absorbing whatever blocks it, or null
      * when no rise within the step height gains ground over {@code blocked}.
      *
-     * <p>Built-in's step is a lift, a horizontal sweep and a settle, so running
+     * <p>A step is a lift, a horizontal sweep and a settle, so running
      * that sweep is the whole rule: how high the surface ahead sits decides
      * the path, and two blocks with one collision shape answer alike however
      * they are named. A rise the sweep cannot clear leaves the caller to
      * treat the obstruction as an ascent.</p>
      */
+    private static double stepSweepHeight(MovementContext context) {
+        double configured = context.profile().groundCapabilities().maxStepHeight();
+        return configured > 1 ? configured : STEP_HEIGHT;
+    }
+
     private static Pos steppedOverObstruction(
-            Entity entity, Vec movement, PhysicsResult blocked) {
+            Entity entity, Vec movement, PhysicsResult blocked,
+            double stepHeight) {
         Instance instance = entity.getInstance();
         if (instance == null) return null;
         BoundingBox box = entity.getBoundingBox();
         Pos base = entity.getPosition();
         PhysicsResult lift = CollisionUtils.handlePhysics(instance, null, box,
-                base, new Vec(0, STEP_HEIGHT, 0), null, false);
+                base, new Vec(0, stepHeight, 0), null, false);
         double lifted = lift.newPosition().y() - base.y();
         if (lifted <= 1.0e-6) return null;
         PhysicsResult across = CollisionUtils.handlePhysics(instance, null,

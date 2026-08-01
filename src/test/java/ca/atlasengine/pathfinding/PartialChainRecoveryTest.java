@@ -46,6 +46,7 @@ class PartialChainRecoveryTest {
             controller.moveTo(new Pos(30.5, 40, 0.5));
 
             boolean reachedWall = false;
+            boolean prefetchedBeforeEndpoint = false;
             for (int tick = 0; tick < 1_500
                     && controller.state() != NavigationState.COMPLETED; tick++) {
                 env.tick();
@@ -54,6 +55,10 @@ class PartialChainRecoveryTest {
                 }
                 if (mob.getPosition().x() > 24 && mob.getPosition().z() < 2) {
                     reachedWall = true;
+                }
+                if (service.metrics().snapshot().searches().submitted() >= 2
+                        && controller.nodeIndex() < controller.nodes().size()) {
+                    prefetchedBeforeEndpoint = true;
                 }
             }
 
@@ -70,6 +75,9 @@ class PartialChainRecoveryTest {
                     .unreachableTargets());
             assertTrue(service.metrics().snapshot().searches().submitted() >= 2,
                     "arriving took more than the one bounded search");
+            assertTrue(prefetchedBeforeEndpoint,
+                    "the next partial segment was not submitted until the "
+                            + "current route was exhausted");
         }
     }
 

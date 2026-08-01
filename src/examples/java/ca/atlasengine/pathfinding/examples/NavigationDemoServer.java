@@ -46,11 +46,12 @@ public final class NavigationDemoServer {
         // reaches it, because every other entry point on this system plans one
         // individual A* search per request.
         NavigationSystem navigation = NavigationSystem.builder()
-                .parallelism(4)
+                .parallelism(2)
                 .queueCapacity(128)
                 .movementPerTick(DemoSession.SPEED)
                 .sharedMesh(SharedMeshOptions.ENABLED)
                 .build();
+        navigation.watchBlockChanges(instance);
         DemoSessions sessions = new DemoSessions(navigation, instance);
 
         // Idle region expiry and promotion hysteresis, once per world tick.

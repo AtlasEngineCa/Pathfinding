@@ -7,7 +7,7 @@ package ca.atlasengine.pathfinding.terrain;
  * not identity: it varies by mob, by profile, and by request, so it lives in
  * {@link TerrainCosts} and is layered by {@link MobTraversalProfile}. Keeping
  * the two apart is what lets a profile override a cost without the category
- * needing an opinion, and lets the baseline table be replaced wholesale.</p>
+ * needing an opinion, and keeps the defaults in one place to audit.</p>
  *
  * <p><strong>Declaration order is API.</strong> These constants are exported,
  * so their ordinals appear in consumer {@code EnumMap} iteration order, in
@@ -90,7 +90,7 @@ public enum TerrainType {
      *     specific mob actually pays, which is what nearly every caller wants.
      *     Retained so existing binaries and sources keep working.
      */
-    @Deprecated
+    @Deprecated(since = "10.3.0")
     public double defaultMalus() {
         return TerrainCosts.baseline(this);
     }

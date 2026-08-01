@@ -34,39 +34,57 @@ public final class RouteGeometry {
                 node.graphX(), node.graphY(), node.graphZ());
     }
 
-    public boolean reachedWaypoint(PathNode node, Point waypoint,
+    public boolean reachedWaypoint(PathNode node, PathNode next, Point waypoint,
                                    Point position, boolean climbableWaypoint) {
         Entity entity = context.entity();
-        double tolerance = entity.getBoundingBox().width() > 0.75
-                ? entity.getBoundingBox().width() / 2
-                : 0.75 - entity.getBoundingBox().width() / 2;
+        double xTolerance = horizontalWaypointTolerance(
+                entity.getBoundingBox().width());
+        double zTolerance = horizontalWaypointTolerance(
+                entity.getBoundingBox().depth());
         // Path waypoints are shifted for wide entities so their bounding box
-        // occupies the evaluator's complete block footprint. The reference
-        // follower nevertheless performs its "node reached" check against
+        // occupies the evaluator's complete block footprint. Ground movement
+        // performs its "node reached" check against
         // the graph block's bottom-center, not that shifted move target.
         // Comparing against the move target can pin a wide entity exactly at
         // its collision boundary beside a wall until the timeout expires.
-        Point reachedCenter = climbableWaypoint ? waypoint : graphCenter(node);
+        Point reachedCenter = climbableWaypoint || isSpatialNode(node)
+                ? waypoint : graphCenter(node);
         double verticalTolerance = node.movement() == PathNode.Movement.CLIMB
                 ? 0.02
                 : verticalWaypointTolerance(navigationMode());
         boolean reached =
-                Math.abs(position.x() - reachedCenter.x()) < tolerance
-                && Math.abs(position.z() - reachedCenter.z()) < tolerance
+                Math.abs(position.x() - reachedCenter.x()) < xTolerance
+                && Math.abs(position.z() - reachedCenter.z()) < zTolerance
                 && Math.abs(position.y() - reachedCenter.y())
                 < verticalTolerance;
         if (node.movement() == PathNode.Movement.JUMP) {
             reached &= entity.isOnGround()
                     || context.hasSupportBelow();
         }
+        // Wide bodies can enter the graph cell's generous reached radius a
+        // fraction before clearing an inside corner. Do not turn toward the
+        // next ordinary walking node until the complete body can sweep there;
+        // otherwise steering drops the final clearance component and pins the
+        // mob parallel to the obstacle indefinitely.
+        if (reached && next != null
+                && (entity.getBoundingBox().width() > 0.75
+                || entity.getBoundingBox().depth() > 0.75)
+                && node.movement() == PathNode.Movement.WALK
+                && next.movement() == PathNode.Movement.WALK
+                && !canSweepTo(position, next.asVec())) {
+            return false;
+        }
         return reached;
     }
 
     public boolean canSkipAheadOf(PathNode node, PathNode next, Point position) {
-        return node.movement() != PathNode.Movement.JUMP
-                && node.movement() != PathNode.Movement.CLIMB
-                && canCutCorner(node)
-                && shouldAdvanceTowardNextNode(position, node, next);
+        if (node.movement() == PathNode.Movement.JUMP
+                || node.movement() == PathNode.Movement.CLIMB
+                || !canCutCorner(node)
+                || !shouldAdvanceTowardNextNode(position, node, next)) {
+            return false;
+        }
+        return canSweepTo(position, next.asVec());
     }
 
     private NavigationMode navigationMode() {
@@ -76,6 +94,10 @@ public final class RouteGeometry {
     private static Point graphCenter(PathNode node) {
         return new Vec(
                 node.graphX() + 0.5, node.graphY(), node.graphZ() + 0.5);
+    }
+
+    private static double horizontalWaypointTolerance(double extent) {
+        return extent > 0.75 ? extent / 2 : 0.75 - extent / 2;
     }
 
     public static double verticalWaypointTolerance(NavigationMode mode) {
@@ -104,8 +126,7 @@ public final class RouteGeometry {
         return type != TerrainType.FIRE_IN_NEIGHBOR
                 && type != TerrainType.DAMAGING_IN_NEIGHBOR
                 && type != TerrainType.WALKABLE_DOOR
-                && (entityType != EntityType.FROG
-                || type != TerrainType.WATER_BORDER);
+                && type != TerrainType.WATER_BORDER;
     }
 
     private boolean shouldAdvanceTowardNextNode(
@@ -153,7 +174,7 @@ public final class RouteGeometry {
         Instance instance = entity.getInstance();
         if (instance == null) return false;
         Point rayStart = start;
-        // The reference shortcut test is a collider ray from the temporary
+        // The volume shortcut test is a collider ray from the temporary
         // navigation position to the destination's mid-body, not a sweep of
         // the entity bounding box. In particular, water navigation supplies
         // a mid-body start. Treating that point as the bottom of a swept box
@@ -180,6 +201,23 @@ public final class RouteGeometry {
         return true;
     }
 
+    /** Whether the entity's complete body can cut directly to a ground node. */
+    public boolean canSweepTo(Point start, Point destination) {
+        Entity entity = context.entity();
+        Instance instance = entity.getInstance();
+        if (instance == null) return false;
+        boolean midBody = navigationMode() == NavigationMode.WATER;
+        double trackingOffset = midBody
+                ? entity.getBoundingBox().height() * 0.5 : 0;
+        Point sweepStart = start.sub(0, trackingOffset, 0);
+        Point sweepDestination = destination.sub(0, trackingOffset, 0);
+        Vec displacement = sweepDestination.sub(sweepStart).asVec();
+        var result = CollisionUtils.handlePhysics(
+                instance, entity.getChunk(), entity.getBoundingBox(),
+                sweepStart.asPos(), displacement, null, false);
+        return result.newPosition().distance(sweepDestination) <= 1.0e-5;
+    }
+
     public boolean isSpatialNode(PathNode node) {
         return movesThroughVolume()
                 || node.movement() == PathNode.Movement.SWIM
@@ -190,9 +228,7 @@ public final class RouteGeometry {
     public Point waypointTrackingPosition() {
         Entity entity = context.entity();
         Point position = entity.getPosition();
-        boolean midBody = navigationMode() == NavigationMode.WATER
-                || navigationMode() == NavigationMode.AMPHIBIOUS
-                && isEntityInWater();
+        boolean midBody = navigationMode() == NavigationMode.WATER;
         return midBody
                 ? position.add(0, entity.getBoundingBox().height() * 0.5, 0)
                 : position;

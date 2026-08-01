@@ -66,6 +66,16 @@ public final class DemoWorld {
     public static final Pos CUSTOM_START = new Pos(2.5, GROUND, 40.5);
     public static final Pos CUSTOM_GOAL = new Pos(24.5, GROUND, 40.5);
 
+    public static final Pos GAUNTLET_VIEW =
+            new Pos(-1.5, GROUND + 3, 54.5, -90, 18);
+    public static final Pos GAUNTLET_START = new Pos(2.5, GROUND, 54.5);
+    public static final Pos GAUNTLET_GOAL = new Pos(44.5, GROUND, 54.5);
+
+    public static final Pos DYNAMIC_VIEW =
+            new Pos(-4.5, GROUND + 6, -52.5, -90, 30);
+    public static final Pos DYNAMIC_START = new Pos(2.5, GROUND, -52.5);
+    public static final Pos DYNAMIC_GOAL = new Pos(52.5, GROUND, -52.5);
+
     /** Floor cells marked in gold and forbidden by a zone influence. */
     public static final int CLOSED_ROAD_MIN_X = 17;
     public static final int CLOSED_ROAD_MAX_X = 19;
@@ -95,6 +105,8 @@ public final class DemoWorld {
         pond(instance);
         flyLane(instance);
         customLane(instance);
+        gauntlet(instance);
+        dynamicMaze(instance);
     }
 
     /** Three staggered walls, so no route through is a straight line. */
@@ -189,6 +201,58 @@ public final class DemoWorld {
             }
         }
         goal(instance, 24, 40);
+    }
+
+    /** A forced sequence of narrow and vertically uneven ground edges. */
+    private static void gauntlet(Instance instance) {
+        corridor(instance, 0, 46, 54, 54, 4);
+
+        // A one-cell dry ledge: water is not collision, but must not make the
+        // usable lane look wider or more expensive than it is.
+        for (int x = 4; x <= 12; x++) {
+            instance.setBlock(x, GROUND, 53, Block.WATER);
+        }
+        wall(instance, 3, 13, 52, 52, GROUND, GROUND + 3);
+
+        // Uneven supports exercise projected waypoint height and step-down.
+        for (int x = 16; x <= 19; x++) {
+            instance.setBlock(x, GROUND, 54, Block.STONE);
+        }
+        for (int x = 18; x <= 19; x++) {
+            instance.setBlock(x, GROUND + 1, 54, Block.STONE_SLAB
+                    .withProperty("type", "bottom"));
+        }
+
+        instance.setBlock(24, GROUND, 54,
+                DOOR.withProperty("half", "lower"));
+        instance.setBlock(24, GROUND + 1, 54,
+                DOOR.withProperty("half", "upper"));
+
+        // One unsupported column requires the opt-in platform jump edge.
+        for (int y = 0; y < GROUND; y++) {
+            instance.setBlock(30, y, 54, Block.AIR);
+        }
+
+        instance.setBlock(36, GROUND, 54, Block.STONE_SLAB
+                .withProperty("type", "bottom"));
+        instance.setBlock(39, GROUND - 1, 54, Block.HONEY_BLOCK);
+        goal(instance, 44, 54);
+    }
+
+    /** Multiple alternating gates make block edits produce visible reroutes. */
+    private static void dynamicMaze(Instance instance) {
+        corridor(instance, 0, 54, -58, -47, 4);
+        boolean upper = true;
+        for (int x = 7; x <= 47; x += 5) {
+            int gapMin = upper ? -50 : -56;
+            int gapMax = gapMin + 1;
+            for (int z = -57; z <= -48; z++) {
+                if (z >= gapMin && z <= gapMax) continue;
+                wall(instance, x, x, z, z, GROUND, GROUND + 2);
+            }
+            upper = !upper;
+        }
+        goal(instance, DYNAMIC_GOAL.blockX(), DYNAMIC_GOAL.blockZ());
     }
 
     private static void goal(Instance instance, int x, int z) {

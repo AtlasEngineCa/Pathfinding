@@ -176,11 +176,16 @@ class GroundNodeEvaluator extends NodeEvaluator {
     private StepContext stepContext(SearchNode current) {
         boolean headRoom = profile.malus(
                 type(current.x, current.y + 1, current.z)) >= 0;
+        // A fractional rise can occupy the block above the obstruction (for
+        // example a full block topped by a lower slab). Probe every cell the
+        // configured height can reach; GroundEdges still rejects candidates
+        // whose measured collision floor exceeds the exact decimal limit.
         int height = headRoom && current.type != TerrainType.STICKY_HONEY
-                ? (int) Math.floor(Math.max(
+                ? (int) Math.ceil(Math.max(
                         1, capabilities.maxStepHeight())) : 0;
         return new StepContext(
-                height, floorLevel(current.x, current.y, current.z),
+                height, footprintFloorLevel(
+                        current.x, current.y, current.z),
                 climb.onClimbable(current));
     }
 
@@ -333,6 +338,20 @@ class GroundNodeEvaluator extends NodeEvaluator {
         node.floor = computeFloorLevel(x, y, z);
         node.floorComputed = true;
         return node.floor;
+    }
+
+    /** Highest supporting surface anywhere under the complete graph footprint. */
+    double footprintFloorLevel(int x, int y, int z) {
+        double highest = Double.NEGATIVE_INFINITY;
+        int width = footprintWidth(box);
+        int depth = footprintDepth(box);
+        for (int offsetX = 0; offsetX < width; offsetX++) {
+            for (int offsetZ = 0; offsetZ < depth; offsetZ++) {
+                highest = Math.max(highest,
+                        computeFloorLevel(x + offsetX, y, z + offsetZ));
+            }
+        }
+        return highest;
     }
 
     private double computeFloorLevel(int x, int y, int z) {

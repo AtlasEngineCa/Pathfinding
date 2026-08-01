@@ -57,10 +57,11 @@ class PathOutputAuditTest {
                 wetLane, MobTraversalProfile.CHICKEN);
         emit("default-water", waterAvoiding);
         emit("floating-water-walker", waterPreferring);
-        // WATER_BORDER extends one cell around all four water blocks. The
-        // least-cost route exits that band behind the start, stays two cells
-        // away, and approaches the border-adjacent goal from beyond it.
-        assertEquals(4 * Math.sqrt(2) + 5, geometricLength(waterAvoiding), 1.0e-9);
+        // WATER itself remains costly, while its dry border is free. The
+        // least-cost route therefore follows the one-cell shoreline instead
+        // of making a wide detour around the complete border band.
+        assertEquals(3 + 2 * Math.sqrt(2),
+                geometricLength(waterAvoiding), 1.0e-9);
         assertEquals(5, integerGraphLength(waterPreferring), 1.0e-9,
                 "baseline A* charges five integer graph edges");
         assertEquals(3 + 2 * Math.sqrt(1.25),

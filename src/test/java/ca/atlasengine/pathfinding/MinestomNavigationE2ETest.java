@@ -761,10 +761,10 @@ class MinestomNavigationE2ETest {
 
             assertEquals(NavigationState.COMPLETED, controller.state());
             assertTrue(mob.getPosition().distance(
-                            new Pos(0.5, 40, 10.5)) < 1.5,
-                    "coordinate navigation uses the reference reach range of one");
+                            new Pos(0.5, 40, 10.5)) <= 0.5,
+                    "coordinate navigation must reach the requested goal cell");
             assertTrue(controller.nodes().stream().anyMatch(n -> Math.abs(n.x()) >= 5.5));
-            assertEquals(8 * Math.sqrt(2) + 5,
+            assertEquals(8 * Math.sqrt(2) + 6,
                     graphLength(controller.nodes()), 1.0e-9,
                     "shortest route must take cardinal edges around the wall end; "
                             + "a diagonal there would cut the blocked corner");

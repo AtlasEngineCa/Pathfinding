@@ -25,6 +25,24 @@ class GroundShapeClearanceTest {
     private final DiscreteGroundPathfinder pathfinder =
             new DiscreteGroundPathfinder();
 
+    @Test
+    void zombieWidthFitsOneCellLedgeBetweenWaterAndTwoHighWall() {
+        TestWorld world = flat();
+        for (int x = -2; x <= 8; x++) {
+            world.set(x, 1, -1, Block.WATER);
+            world.set(x, 1, 1, Block.STONE);
+            world.set(x, 2, 1, Block.STONE);
+        }
+
+        PathResult result = find(world, new Pos(0.5, 1, 0.5),
+                new Pos(6.5, 1, 0.5), STANDARD, 16);
+
+        assertTrue(result.found(), result::toString);
+        assertTrue(result.nodes().stream().allMatch(node -> node.graphZ() == 0),
+                result.nodes()::toString);
+        assertLevelSegmentsClear(world, result, STANDARD);
+    }
+
     /**
      * Vertical clearance is a walking constraint, not only a jump-arc one.
      * A two-block-high corridor capped at y=2 admits a 0.9-high mob and stops

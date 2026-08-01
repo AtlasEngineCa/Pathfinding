@@ -63,10 +63,11 @@ public final class TerrainCosts {
         set(costs, TerrainType.ON_TOP_OF_TRAPDOOR, FREE);
         set(costs, TerrainType.ON_TOP_OF_POWDER_SNOW, FREE);
 
-        // Swimming is accepted but never preferred over dry ground; a border
-        // cell costs the same, so a swimmer has no reason to hug walls.
+        // Swimming is accepted but never preferred over dry ground. A dry
+        // shoreline cell remains free: water beside a one-cell ledge must not
+        // make that ledge look narrower than the entity's collision box.
         set(costs, TerrainType.WATER, DETERRENT);
-        set(costs, TerrainType.WATER_BORDER, DETERRENT);
+        set(costs, TerrainType.WATER_BORDER, FREE);
         // Breaching is half a deterrent: surfacing is normal for an air
         // breather, unlike being pushed against a wall.
         set(costs, TerrainType.BREACH, DETERRENT / 2);

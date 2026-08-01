@@ -11,6 +11,7 @@ import ca.atlasengine.pathfinding.profile.NavigationModifiers;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.NavigationSystem;
+import ca.atlasengine.pathfinding.internal.EntityTargets;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshStatus;
@@ -54,7 +55,7 @@ public final class Demos {
         Player player = session.player();
         player.teleport(DemoWorld.PLAZA);
         session.spawn(EntityType.ZOMBIE, "chase", DemoWorld.CHASE_START)
-                .pursue(player::getPosition);
+                .pursue(() -> EntityTargets.supportedPosition(player));
         say(session, "Run. It calls moveTo(player) every tick.");
     }
 
@@ -180,6 +181,38 @@ public final class Demos {
                         NavigationModifiers.NONE);
         say(session, "It skirts the magenta wool it prices as damaging, jumps "
                 + "the gap, and refuses the gold zone.");
+    }
+
+    /** Several ground-navigation edge cases forced into one continuous route. */
+    public static void gauntlet(DemoSession session) {
+        session.player().teleport(DemoWorld.GAUNTLET_VIEW);
+        NavigationProfile base = BuiltinNavigationProfiles
+                .forEntityType(EntityType.ZOMBIE);
+        NavigationProfile capable = base
+                .withGroundCapabilities(base.groundCapabilities()
+                        .withPlatformJump(
+                                PlatformJumpCapabilities.acrossGaps(1)))
+                .withMobProfile(MobTraversalProfile.builder("gauntlet_zombie")
+                        .from(base.mobProfile())
+                        .blockManipulation(BlockManipulationCapabilities.STANDARD)
+                        .build());
+
+        session.spawn(EntityType.ZOMBIE, "gauntlet",
+                        DemoWorld.GAUNTLET_START, capable)
+                .moveTo(DemoWorld.GAUNTLET_GOAL);
+        say(session, "One route must hold a one-cell shoreline ledge, climb "
+                + "uneven steps, open a door, cross a gap, and settle onto "
+                + "partial-height terrain before reaching the goal.");
+    }
+
+    /** A long multi-route maze where players can edit topology while it runs. */
+    public static void dynamic(DemoSession session) {
+        session.player().teleport(DemoWorld.DYNAMIC_VIEW);
+        session.spawn(EntityType.ZOMBIE, "dynamic",
+                        DemoWorld.DYNAMIC_START)
+                .moveTo(DemoWorld.DYNAMIC_GOAL);
+        say(session, "Place or break blocks on the green particle route. "
+                + "Affected controllers should replan immediately.");
     }
 
     /** Many mobs converging on one target, planned through the shared mesh. */
