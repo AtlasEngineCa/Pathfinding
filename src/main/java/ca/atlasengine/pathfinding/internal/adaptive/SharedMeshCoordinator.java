@@ -1,20 +1,21 @@
 package ca.atlasengine.pathfinding.internal.adaptive;
 
-import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.adaptive.SharedNavigationRoute;
 import ca.atlasengine.pathfinding.adaptive.SharedRouteMesh;
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.RouteLength;
 import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathNodeCost;
 import ca.atlasengine.pathfinding.result.PathStatus;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.instance.block.Block;
@@ -57,11 +58,6 @@ public final class SharedMeshCoordinator implements AutoCloseable {
             new HashMap<>();
     private long sequence;
     private boolean closed;
-
-    public SharedMeshCoordinator(
-            PlanSubmitter submitter, SharedMeshPolicy config) {
-        this(submitter, config, new NavigationMetrics());
-    }
 
     /** Records dispatch decisions into a recorder shared with a service. */
     public SharedMeshCoordinator(
@@ -250,13 +246,7 @@ public final class SharedMeshCoordinator implements AutoCloseable {
                 && region.activeMembers < config.retentionRequests()
                 && currentTick - region.lastRequestTick
                 >= config.targetIdleTicks()) {
-            region.promoted = false;
-            region.promoting = false;
-            region.fields.clear();
-            region.fieldEdges = Set.of();
-            region.publishedPlans.clear();
-            region.requestCount = region.activeMembers;
-            region.invalidate();
+            region.demote();
         } else if (graphChanged && region.certifying()) {
             region.rebuild(config);
         }
@@ -304,7 +294,7 @@ public final class SharedMeshCoordinator implements AutoCloseable {
                 SharedRouteMesh.Builder<MeshNode> builder =
                         SharedRouteMesh.builder(snapshot.worldRevision());
                 snapshot.edges().forEach((edge, plan) -> builder.route(
-                        edge.from, edge.to, plan, graphLength(plan.nodes())));
+                        edge.from, edge.to, plan, RouteLength.of(plan.nodes())));
                 mesh = builder.build();
             } catch (IllegalArgumentException | IllegalStateException ignored) {
                 // The retained edges do not form a buildable mesh. Every
@@ -575,15 +565,6 @@ public final class SharedMeshCoordinator implements AutoCloseable {
         if (closed) throw new IllegalStateException("coordinator is closed");
     }
 
-    private static double graphLength(List<PathNode> nodes) {
-        double length = 0;
-        for (int index = 1; index < nodes.size(); index++) {
-            length += nodes.get(index - 1).asVec()
-                    .distance(nodes.get(index).asVec());
-        }
-        return length;
-    }
-
     /**
      * {@code retainedNodes} is the waypoint-mesh endpoint count. The three
      * plan-map sizes are counted separately because a region retains routes
@@ -629,15 +610,24 @@ public final class SharedMeshCoordinator implements AutoCloseable {
             return promoted || promoting;
         }
 
+        /** Drops every route retained under an older world revision. */
         void reset(long revision, long tick) {
             worldRevision = revision;
             lastRequestTick = tick;
-            requestCount = activeMembers;
-            promoted = false;
-            promoting = false;
             graph.edges.clear();
             observedPlans.clear();
             certifiedPlans.clear();
+            demote();
+        }
+
+        /**
+         * Stops serving shared plans and restarts the promotion count from the
+         * members still present. The retained skeleton is kept.
+         */
+        void demote() {
+            requestCount = activeMembers;
+            promoted = false;
+            promoting = false;
             fields.clear();
             fieldEdges = Set.of();
             publishedPlans.clear();

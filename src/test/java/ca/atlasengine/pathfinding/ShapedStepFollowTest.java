@@ -1,6 +1,6 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.result.PathNode;import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.result.PathNode;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -262,7 +262,7 @@ class ShapedStepFollowTest {
             mob.setBoundingBox(width, 1.95, width);
             mob.setInstance(instance, start).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.12);
+                    TestWorlds.builtinController(mob, service, 0.12);
             mob.controller = controller;
             controller.moveTo(goal);
             for (int tick = 0; tick < maximumTicks; tick++) {
@@ -330,9 +330,7 @@ class ShapedStepFollowTest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

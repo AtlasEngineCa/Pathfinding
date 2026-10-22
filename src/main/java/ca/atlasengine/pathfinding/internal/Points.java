@@ -2,6 +2,8 @@ package ca.atlasengine.pathfinding.internal;
 
 import net.minestom.server.coordinate.Point;
 
+import java.util.List;
+
 /**
  * Coordinate validation shared by every entry point that accepts a caller
  * supplied position.
@@ -21,5 +23,14 @@ public final class Points {
         return Double.isFinite(point.x())
                 && Double.isFinite(point.y())
                 && Double.isFinite(point.z());
+    }
+
+    /** Whether {@code points} is non-empty and every element is finite. */
+    public static boolean allFinite(List<? extends Point> points) {
+        if (points == null || points.isEmpty()) return false;
+        for (Point point : points) {
+            if (point == null || !finite(point)) return false;
+        }
+        return true;
     }
 }

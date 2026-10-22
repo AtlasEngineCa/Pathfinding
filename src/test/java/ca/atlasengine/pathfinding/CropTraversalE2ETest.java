@@ -1,10 +1,8 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -61,8 +59,8 @@ class CropTraversalE2ETest {
     @Test
     void aMobWalksThroughAPlantedFieldInsteadOfStopping(Env env) {
         Instance instance = plantedField(env, Block.WHEAT);
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 41, 0.5)).join();
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 41, 0.5));
         env.tick();
 
         try (NavigationSystem navigation = NavigationSystem.builder()
@@ -86,8 +84,8 @@ class CropTraversalE2ETest {
     void aMobSpawnedInsideCropsStillMoves(Env env) {
         // The exact report in #3224: spawned into the crop, never moves.
         Instance instance = plantedField(env, Block.CARROTS);
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(4.5, 41, 0.5)).join();
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(4.5, 41, 0.5));
         env.tick();
 
         try (NavigationSystem navigation = NavigationSystem.builder()
@@ -110,8 +108,8 @@ class CropTraversalE2ETest {
     void aRouteIsFoundThroughEveryCropFamily(Env env) {
         for (Block crop : CROPS) {
             Instance instance = plantedField(env, crop);
-            EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-            mob.setInstance(instance, new Pos(0.5, 41, 0.5)).join();
+            EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                    new Pos(0.5, 41, 0.5));
             env.tick();
             try (NavigationSystem navigation = NavigationSystem.builder()
                     .parallelism(1).queueCapacity(8).build()) {
@@ -141,9 +139,7 @@ class CropTraversalE2ETest {
 
     /** Soil with a crop planted on top, the shape the reports show. */
     private static Instance plantedField(Env env, Block crop) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         for (int x = -2; x <= 14; x++) {
             for (int z = -3; z <= 3; z++) {
                 instance.setBlock(x, 40, z, Block.DIRT);

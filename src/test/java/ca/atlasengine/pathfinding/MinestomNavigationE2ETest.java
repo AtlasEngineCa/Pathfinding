@@ -1,9 +1,20 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -44,7 +55,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             mob, service, jumping, 0.18);
             mob.controller = controller;
             Pos goal = new Pos(4.5, 40, 0.5);
@@ -95,7 +106,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             mob, service, jumpProfile(4), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(6.5, 40, 0.5));
@@ -138,7 +149,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.24);
+                    TestWorlds.builtinController(mob, service, 0.24);
             mob.controller = controller;
             controller.moveTo(new Pos(24.5, 40, 0.5));
 
@@ -195,7 +206,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             mob, service, jumpProfile(2), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(6.5, 40, 0.5));
@@ -256,7 +267,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             mob, service, jumpProfile(2), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(4.5, 40, 0.5));
@@ -323,7 +334,7 @@ class MinestomNavigationE2ETest {
                         new Pos(0.5, 40, 0.5));
                 mob.setBoundingBox(width, 1.8, width);
                 EntityNavigationController controller =
-                        EntityNavigationController.builtin(
+                        TestWorlds.builtinController(
                                 mob, service, 0.16);
                 mob.controller = controller;
                 controller.moveTo(new Pos(12.5, 40, 0.5));
@@ -380,7 +391,7 @@ class MinestomNavigationE2ETest {
                     new Pos(0.5, 40, 0.5));
             mob.setBoundingBox(1.8, 1.8, 0.8);
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.32);
+                    TestWorlds.builtinController(mob, service, 0.32);
             mob.controller = controller;
             controller.moveTo(new Pos(60, 40, 0.5));
 
@@ -435,7 +446,7 @@ class MinestomNavigationE2ETest {
                     new Pos(0.5, 40, 0.5));
             mob.setBoundingBox(1.8, 2.7, 1.8);
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.22);
+                    TestWorlds.builtinController(mob, service, 0.22);
             mob.controller = controller;
             controller.moveTo(new Pos(24.5, 40, 0.5));
 
@@ -483,7 +494,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             mob, service, jumpProfile(4), 0.12);
             mob.controller = controller;
             controller.moveTo(new Pos(10.5, 40, 0.5));
@@ -559,7 +570,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.12);
+                    TestWorlds.builtinController(mob, service, 0.12);
             mob.controller = controller;
             controller.moveTo(new Pos(9.5, 44, 0.5));
 
@@ -602,7 +613,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             narrow.setBoundingBox(0.8, 1.8, 0.8);
             EntityNavigationController narrowController =
-                    EntityNavigationController.builtin(
+                    TestWorlds.builtinController(
                             narrow, service, 0.14);
             narrow.controller = narrowController;
             narrowController.moveTo(new Pos(6.5, 40, 0.5));
@@ -620,7 +631,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             wide.setBoundingBox(1.01, 1.8, 1.01);
             EntityNavigationController wideController =
-                    EntityNavigationController.builtin(wide, service, 0.14);
+                    TestWorlds.builtinController(wide, service, 0.14);
             wide.controller = wideController;
             wideController.moveTo(new Pos(6.5, 40, 0.5));
             runUntilFinished(env, wideController, 1_000);
@@ -646,7 +657,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.14);
+                    TestWorlds.builtinController(mob, service, 0.14);
             mob.controller = controller;
             controller.moveTo(new Pos(8.5, 40, 0.5));
 
@@ -706,7 +717,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(6.5, 40, 0.5));
 
@@ -753,7 +764,7 @@ class MinestomNavigationE2ETest {
                      new AsyncEntityPathfindingService(2, 32)) {
             ControlledCreature mob = spawn(instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(0.5, 40, 10.5));
 
@@ -801,7 +812,7 @@ class MinestomNavigationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature mob = spawn(instance, EntityType.VILLAGER, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.16);
+                    TestWorlds.builtinController(mob, service, 0.16);
             mob.controller = controller;
             controller.moveTo(new Pos(5.5, 40, 0.5));
 
@@ -919,7 +930,7 @@ class MinestomNavigationE2ETest {
                     instance, EntityType.VILLAGER, new Pos(0.5, 40, 0.5));
             mob.watchedBlocks = watched;
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.16);
+                    TestWorlds.builtinController(mob, service, 0.16);
             mob.controller = controller;
             controller.moveTo(new Pos(6.5, 40, 0.5),
                     NavigationModifiers.builder()
@@ -952,7 +963,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(5.5, 40, 0.5));
 
@@ -984,7 +995,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature zombie = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(zombie, service, 0.18);
+                    TestWorlds.builtinController(zombie, service, 0.18);
             zombie.controller = controller;
             controller.moveTo(new Pos(5.5, 40, 0.5),
                     NavigationModifiers.builder()
@@ -1012,7 +1023,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature zombie = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(zombie, service, 0.12);
+                    TestWorlds.builtinController(zombie, service, 0.12);
             zombie.controller = controller;
             controller.moveTo(new Pos(5.5, 40, 0.5));
 
@@ -1062,7 +1073,7 @@ class MinestomNavigationE2ETest {
             NavigationProfile profile = BuiltinNavigationProfiles
                     .forEntityType(EntityType.SPIDER);
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             spider, service, profile, 0.15);
             spider.controller = controller;
             Pos goal = new Pos(4.5, 46, 0.5);
@@ -1114,7 +1125,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.16);
+                    TestWorlds.builtinController(mob, service, 0.16);
             mob.controller = controller;
             NavigationRequest proofRequest = NavigationRequest.builder(
                             instance, mob.getPosition(), new Pos(0.5, 48, 0.5),
@@ -1180,7 +1191,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                     new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service, climbing, 0.16);
+                    TestWorlds.controller(mob, service, climbing, 0.16);
             mob.controller = controller;
             Pos climbGoal = new Pos(3.5, 45, 0.5);
             NavigationRequest meshRequest = new NavigationRequest(
@@ -1209,13 +1220,16 @@ class MinestomNavigationE2ETest {
                             + mob.getPosition());
             emit("opt-in-ladder-ascent", mob, controller);
 
-            GroundCapabilities descentCapabilities = GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1).allowDiagonal(true).horizontalEdgeCost(false).platformJump(PlatformJumpCapabilities.DISABLED).climbables(ClimbableCapabilities.STANDARD).build();
+            GroundCapabilities descentCapabilities = GroundCapabilities.builder()
+                    .maxFallDistance(1)
+                    .climbables(ClimbableCapabilities.STANDARD)
+                    .build();
             NavigationProfile descending =
                     base.withGroundCapabilities(descentCapabilities);
             ControlledCreature descendingMob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(2.5, 45, 0.5));
             EntityNavigationController descendingController =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             descendingMob, service, descending, 0.16);
             descendingMob.controller = descendingController;
             descendingController.moveTo(new Pos(0.5, 40, 0.5));
@@ -1242,7 +1256,7 @@ class MinestomNavigationE2ETest {
                     new Pos(-1, 40, 0.5));
             wideMob.setBoundingBox(1.8, 1.8, 0.8);
             EntityNavigationController wideController =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             wideMob, service, climbing, 0.16);
             wideMob.controller = wideController;
             wideController.moveTo(new Pos(3.5, 45, 0.5));
@@ -1278,15 +1292,16 @@ class MinestomNavigationE2ETest {
             instance.setBlock(3, 44, 0, Block.STONE);
             NavigationProfile base = BuiltinNavigationProfiles.forEntityType(
                     EntityType.ZOMBIE);
-            NavigationProfile climbing = NavigationProfile.builder(base.mode(), base.mobProfile(), base.groundCapabilities().withClimbables(
-                            ClimbableCapabilities.STANDARD)).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+            NavigationProfile climbing = base.withGroundCapabilities(
+                    base.groundCapabilities().withClimbables(
+                            ClimbableCapabilities.STANDARD));
 
             try (AsyncEntityPathfindingService service =
                          new AsyncEntityPathfindingService(1, 8)) {
                 ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                         new Pos(0.5, 40, 0.5));
                 EntityNavigationController controller =
-                        new EntityNavigationController(
+                        TestWorlds.controller(
                                 mob, service, climbing, 0.16);
                 mob.controller = controller;
                 controller.moveTo(new Pos(3.5, 45, 0.5));
@@ -1320,7 +1335,7 @@ class MinestomNavigationE2ETest {
             ControlledCreature mob = spawn(
                     instance, EntityType.ZOMBIE, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(8.5, 40, 0.5),
                     NavigationModifiers.builder().avoidSun(true).build());
@@ -1340,9 +1355,7 @@ class MinestomNavigationE2ETest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 
@@ -1357,7 +1370,10 @@ class MinestomNavigationE2ETest {
                 BuiltinNavigationProfiles.forEntityType(EntityType.ZOMBIE);
         return base.withGroundCapabilities(
                 base.groundCapabilities().withPlatformJump(
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(distance).maxRise(0).maxDrop(0).apexClearance(1).build()));
+                        PlatformJumpCapabilities.builder()
+                                .maxHorizontalDistance(distance)
+                                .apexClearance(1)
+                                .build()));
     }
 
     private static void runUntilFinished(Env env, EntityNavigationController controller,

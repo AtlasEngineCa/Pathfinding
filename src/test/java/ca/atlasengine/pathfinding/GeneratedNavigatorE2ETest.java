@@ -3,7 +3,6 @@ package ca.atlasengine.pathfinding;
 import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.result.PathNode;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -420,7 +419,7 @@ class GeneratedNavigatorE2ETest {
                             index % 2 == 0 ? EntityType.ZOMBIE : EntityType.SILVERFISH);
                     mob.setInstance(instance, new Pos(0.5, 40, z)).join();
                     EntityNavigationController controller =
-                            EntityNavigationController.builtin(mob, service, 0.18);
+                            TestWorlds.builtinController(mob, service, 0.18);
                     mob.controller = controller;
                     controller.moveTo(new Pos(12.5, 40, z));
                     mobs.add(mob);
@@ -477,7 +476,7 @@ class GeneratedNavigatorE2ETest {
                     TrackedCreature mob = new TrackedCreature(EntityType.SILVERFISH);
                     mob.setInstance(instance, new Pos(0.5, 40, z)).join();
                     EntityNavigationController controller =
-                            EntityNavigationController.builtin(mob, service, 0.2);
+                            TestWorlds.builtinController(mob, service, 0.2);
                     mob.controller = controller;
                     controller.moveTo(new Pos(13.5, 40, z));
                     mobs.add(mob);
@@ -589,7 +588,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, start).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(goal);
             runUntilTerminal(env, controller, 2_000);
@@ -623,7 +622,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, start).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             assertEquals(expectedMode, BuiltinNavigationProfiles
                     .forEntityType(type).mode(), label);
@@ -655,7 +654,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, start).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(goal);
             for (int tick = 0; tick < 300
@@ -700,7 +699,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, start).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(goal);
             runUntilTerminal(env, controller, 2_000);
@@ -722,7 +721,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.18);
+                    TestWorlds.builtinController(mob, service, 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(13.5, 40, 0.5));
             for (int tick = 0; tick < 2_000; tick++) {
@@ -765,7 +764,7 @@ class GeneratedNavigatorE2ETest {
         try {
             mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(mob, service, 0.2);
+                    TestWorlds.builtinController(mob, service, 0.2);
             mob.controller = controller;
             controller.moveTo(new Pos(13.5, 40, 0.5));
             for (int tick = 0; tick < 2_500; tick++) {
@@ -917,9 +916,7 @@ class GeneratedNavigatorE2ETest {
     }
 
     private static Instance prepared(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

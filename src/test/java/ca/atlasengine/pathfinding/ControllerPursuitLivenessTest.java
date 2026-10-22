@@ -1,6 +1,8 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.result.PathNode;import net.minestom.server.coordinate.Point;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.result.PathNode;
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -17,7 +19,6 @@ import static ca.atlasengine.pathfinding.PursuitHarness.MOB_PER_TICK;
 import static ca.atlasengine.pathfinding.PursuitHarness.SURFACE_Y;
 import static ca.atlasengine.pathfinding.PursuitHarness.loadedGatedFlatInstance;
 import static ca.atlasengine.pathfinding.PursuitHarness.orbit;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -66,8 +67,8 @@ class ControllerPursuitLivenessTest {
     void aLandedSearchIsReadBeforeAQueuedReplanSupersedesIt(Env env) {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -112,8 +113,8 @@ class ControllerPursuitLivenessTest {
     void aSearchThatNeverLandsIsEventuallyAbandoned(Env env) {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -200,8 +201,8 @@ class ControllerPursuitLivenessTest {
     private static Pursuit pursue(Env env, int latencyTicks, int retargetTicks) {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -255,5 +256,4 @@ class ControllerPursuitLivenessTest {
             env.destroyInstance(instance);
         }
     }
-
 }

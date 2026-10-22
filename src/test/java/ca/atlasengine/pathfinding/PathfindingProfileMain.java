@@ -1,11 +1,21 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import jdk.jfr.Configuration;
-import jdk.jfr.Recording;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import jdk.jfr.Configuration;
+import jdk.jfr.Recording;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.block.Block;
 
 import java.lang.management.ManagementFactory;
@@ -95,8 +105,9 @@ public final class PathfindingProfileMain {
             if (z < -10 || z > -8) world.column(24, z, 1, 3, Block.STONE);
             if (z < 6 || z > 8) world.column(36, z, 1, 3, Block.STONE);
         }
-        DiscreteGroundPathfinder engine = new DiscreteGroundPathfinder();
-        return () -> engine.findPath(world, new Pos(0.5, 1, 0.5), new Pos(45.5, 1, 0.5), new BoundingBox(0.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(100).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return () -> GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(45.5, 1, 0.5),
+                new BoundingBox(0.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, 100, 8,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static Workload mazeWorkload() {
@@ -109,8 +120,9 @@ public final class PathfindingProfileMain {
             }
             positive = !positive;
         }
-        DiscreteGroundPathfinder engine = new DiscreteGroundPathfinder();
-        return () -> engine.findPath(world, new Pos(0.5, 1, -20.5), new Pos(0.5, 1, 20.5), new BoundingBox(0.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(200).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return () -> GroundSearches.find(world, new Pos(0.5, 1, -20.5), new Pos(0.5, 1, 20.5),
+                new BoundingBox(0.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, 200, 8,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static Workload flyingWorkload() {
@@ -121,7 +133,8 @@ public final class PathfindingProfileMain {
             }
         }
         EntityPathfinder engine = new EntityPathfinder();
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.FLYING, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.FLYING,
+                MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).build();
         NavigationRequest request = NavigationRequest.builder(world,
                         new Vec(0.5, 0.5, 0.5), new Vec(40.5, 0.5, 0.5),
                         new BoundingBox(0.6, 0.6, 0.6), profile)
@@ -138,7 +151,8 @@ public final class PathfindingProfileMain {
             }
         }
         EntityPathfinder engine = new EntityPathfinder();
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND,
+                MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).build();
         NavigationRequest request = NavigationRequest.builder(world,
                         new Pos(0.5, 1, 0.5), new Pos(42.5, 1, 0.5),
                         new BoundingBox(1.8, 2.7, 1.8), profile)
@@ -157,9 +171,10 @@ public final class PathfindingProfileMain {
         }
         EntityPathfinder engine = new EntityPathfinder();
         NavigationProfile base = BuiltinNavigationProfiles.forEntityType(
-                net.minestom.server.entity.EntityType.ZOMBIE);
-        NavigationProfile climbing = NavigationProfile.builder(base.mode(), base.mobProfile(), base.groundCapabilities().withClimbables(
-                        ClimbableCapabilities.STANDARD)).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+                EntityType.ZOMBIE);
+        NavigationProfile climbing = base.withGroundCapabilities(
+                base.groundCapabilities().withClimbables(
+                        ClimbableCapabilities.STANDARD));
         NavigationRequest request = NavigationRequest.builder(world,
                         new Pos(0.5, 1, 0.5), new Pos(1.5, 33, 0.5),
                         new BoundingBox(0.6, 1.8, 0.6), climbing)

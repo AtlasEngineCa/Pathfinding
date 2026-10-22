@@ -1,12 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.influence.AllowedNavigationAreas;
 import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
 import ca.atlasengine.pathfinding.influence.EntityFearInfluence;
@@ -16,6 +14,19 @@ import ca.atlasengine.pathfinding.influence.NavigationArea;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.ReturnRadiusInfluence;
+import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -28,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +50,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -241,7 +252,9 @@ class AdaptiveNavigationCoordinatorTest {
                             NavigationPlan.from(submitted, oracle.findPath(
                                     submitted, SearchControl.NONE)));
                 }, SharedMeshPolicy.builder()
-                        .promotionRequests(2).retentionRequests(1).build());
+                        .promotionRequests(2)
+                                .retentionRequests(1)
+                                .build(), new NavigationMetrics());
         // Five blocks over the floor, so a grounded snapshot rounds to the
         // empty cell the mob occupies while an airborne one walks down to the
         // surface. Both are legal starts and they are not the same node.
@@ -426,7 +439,9 @@ class AdaptiveNavigationCoordinatorTest {
                             NavigationPlan.from(submitted, oracle.findPath(
                                     submitted, SearchControl.NONE)));
                 }, SharedMeshPolicy.builder()
-                        .promotionRequests(2).retentionRequests(1).build());
+                        .promotionRequests(2)
+                                .retentionRequests(1)
+                                .build(), new NavigationMetrics());
         Pos start = new Pos(1.5, 1, 5.5);
         List<Pos> jittered = List.of(
                 new Pos(12.37, 1, 4.81), new Pos(12.62, 1, 4.12),
@@ -518,7 +533,7 @@ class AdaptiveNavigationCoordinatorTest {
         SharedMeshCoordinator coordinator =
                 new SharedMeshCoordinator(
                         (actor, request) -> completedPlan(request, searches),
-                        config);
+                        config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         Pos start = new Pos(1, 1, 1);
         try {
@@ -548,7 +563,7 @@ class AdaptiveNavigationCoordinatorTest {
                 new SharedMeshCoordinator((actor, request) -> {
                     searches.incrementAndGet();
                     return CompletableFuture.completedFuture(corridorPlan(request));
-                }, config);
+                }, config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         Pos target = new Pos(8.5, 1, 0.5);
         NavigationRequest full = request(world,
@@ -590,7 +605,9 @@ class AdaptiveNavigationCoordinatorTest {
                                     ? detourPlan(request)
                                     : corridorPlan(request));
                 }, SharedMeshPolicy.builder()
-                        .promotionRequests(2).retentionRequests(1).build());
+                        .promotionRequests(2)
+                                .retentionRequests(1)
+                                .build(), new NavigationMetrics());
         TestWorld world = new TestWorld();
         Pos target = new Pos(4.5, 1, 0.5);
         NavigationRequest full = request(world,
@@ -625,7 +642,9 @@ class AdaptiveNavigationCoordinatorTest {
                 .maximumRegions(4).build();
         SharedMeshCoordinator coordinator =
                 new SharedMeshCoordinator(
-                        (actor, request) -> completedPlan(request, searches), config);
+                        (actor,
+                                request) -> completedPlan(request,
+                                        searches), config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         NavigationRequest request = request(world,
                 new Pos(1.5, 1, 1.5), new Pos(10.5, 1, 1.5), SMALL, GROUND);
@@ -689,7 +708,9 @@ class AdaptiveNavigationCoordinatorTest {
                 .build();
         SharedMeshCoordinator coordinator =
                 new SharedMeshCoordinator(
-                        (actor, request) -> completedPlan(request, searches), config);
+                        (actor,
+                                request) -> completedPlan(request,
+                                        searches), config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         coordinator.request("inside", "target", 1, 0,
                 request(world, new Pos(1, 1, 1), new Pos(8, 1, 1),
@@ -725,7 +746,7 @@ class AdaptiveNavigationCoordinatorTest {
                             new CompletableFuture<>();
                     pending.add(result);
                     return result;
-                }, config);
+                }, config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         NavigationRequest request = request(world,
                 new Pos(1.5, 1, 1.5), new Pos(30.5, 1, 1.5), SMALL, GROUND);
@@ -773,7 +794,9 @@ class AdaptiveNavigationCoordinatorTest {
                 .maximumTargetsPerRegion(2).build();
         SharedMeshCoordinator coordinator =
                 new SharedMeshCoordinator(
-                        (actor, request) -> completedPlan(request, searches), config);
+                        (actor,
+                                request) -> completedPlan(request,
+                                        searches), config, new NavigationMetrics());
         TestWorld world = new TestWorld();
 
         coordinator.request("one", "player", 1, 0,
@@ -801,7 +824,7 @@ class AdaptiveNavigationCoordinatorTest {
                 new SharedMeshCoordinator((actor, request) -> pending,
                         SharedMeshPolicy.builder()
                                 .promotionRequests(2).retentionRequests(1)
-                                .build());
+                                .build(), new NavigationMetrics());
         TestWorld world = new TestWorld();
         NavigationRequest request = request(world,
                 new Pos(1, 1, 1), new Pos(20, 1, 1), SMALL, GROUND);
@@ -997,7 +1020,7 @@ class AdaptiveNavigationCoordinatorTest {
         SharedMeshCoordinator coordinator =
                 new SharedMeshCoordinator(
                         (actor, request) -> completedPlan(request, searches),
-                        config);
+                        config, new NavigationMetrics());
         TestWorld world = new TestWorld();
         List<SharedMeshHandle> handles = new ArrayList<>();
 
@@ -1166,7 +1189,9 @@ class AdaptiveNavigationCoordinatorTest {
                     pending.put(actor, future);
                     return future;
                 }, SharedMeshPolicy.builder()
-                        .promotionRequests(4).retentionRequests(1).build());
+                        .promotionRequests(4)
+                                .retentionRequests(1)
+                                .build(), new NavigationMetrics());
         List<Pos> starts = List.of(new Pos(0.5, 1, 0.5), new Pos(0.5, 1, 15.5),
                 new Pos(15.5, 1, 0.5), new Pos(1.5, 1, 8.5));
         Pos destination = new Pos(14.5, 1, 14.5);
@@ -1231,7 +1256,7 @@ class AdaptiveNavigationCoordinatorTest {
             pending.put(actor, future);
             return future;
         }, SharedMeshPolicy.builder()
-                .promotionRequests(2).retentionRequests(1).build());
+                .promotionRequests(2).retentionRequests(1).build(), new NavigationMetrics());
     }
 
     /**
@@ -1315,7 +1340,9 @@ class AdaptiveNavigationCoordinatorTest {
         SharedMeshPolicy config = SharedMeshPolicy.builder()
                 .promotionRequests(threshold).retentionRequests(1).build();
         return new SharedMeshCoordinator(
-                (actor, request) -> completedPlan(request, searches), config);
+                (actor,
+                        request) -> completedPlan(request,
+                                searches), config, new NavigationMetrics());
     }
 
     private static CompletableFuture<NavigationPlan> completedPlan(
@@ -1332,7 +1359,7 @@ class AdaptiveNavigationCoordinatorTest {
                         new PathNode(target.x(), target.y(), target.z(),
                                 PathNode.Movement.WALK,
                                 target.blockX(), target.blockY(), target.blockZ())),
-                2, 8));
+                2, 8, List.of()));
     }
 
     private static NavigationPlan corridorPlan(NavigationRequest request) {
@@ -1347,7 +1374,7 @@ class AdaptiveNavigationCoordinatorTest {
         return new NavigationPlan(
                 request.start(), request.target(), request.boundingBox(),
                 request.profile(), PathStatus.FOUND, nodes,
-                nodes.size(), nodes.size() * 8);
+                nodes.size(), nodes.size() * 8, List.of());
     }
 
     private static NavigationPlan detourPlan(NavigationRequest request) {
@@ -1358,7 +1385,7 @@ class AdaptiveNavigationCoordinatorTest {
                 new PathNode(4.5, 1, 0.5, PathNode.Movement.WALK, 4, 1, 0));
         return new NavigationPlan(
                 request.start(), request.target(), request.boundingBox(),
-                request.profile(), PathStatus.FOUND, nodes, 4, 32);
+                request.profile(), PathStatus.FOUND, nodes, 4, 32, List.of());
     }
 
     private static NavigationRequest request(

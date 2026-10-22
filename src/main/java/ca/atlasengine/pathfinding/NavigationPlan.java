@@ -1,12 +1,13 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathNodeCost;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.result.PathStatus;
 import ca.atlasengine.pathfinding.result.PathStop;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
@@ -49,15 +50,6 @@ public record NavigationPlan(
         target = new Vec(target.x(), target.y(), target.z());
         nodes = List.copyOf(nodes);
         nodeCosts = List.copyOf(nodeCosts);
-    }
-
-    /** An unpriced plan, for callers that never ran a node-graph search. */
-    public NavigationPlan(
-            Point start, Point target, BoundingBox boundingBox,
-            NavigationProfile profile, PathStatus status,
-            List<PathNode> nodes, int visitedNodes, int examinedNeighbors) {
-        this(start, target, boundingBox, profile, status, nodes,
-                visitedNodes, examinedNeighbors, List.of());
     }
 
     /** Keeps the route, its work counters, and its per-cell charged costs. */

@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
+import ca.atlasengine.pathfinding.metrics.SpliceCounts;
 import ca.atlasengine.pathfinding.result.PathNode;
 import net.minestom.server.coordinate.Point;
 
@@ -42,20 +43,6 @@ public final class RouteSplicer {
      * which the caller applies to every index it holds into the old route.
      */
     public record Join(List<PathNode> nodes, int offset) {
-    }
-
-    /**
-     * Why armed splices did or did not become joined routes. {@code overrun}
-     * counts the entities that passed the splice node before their plan
-     * landed, {@code expired} those whose search outran its own predicted
-     * wait, {@code superseded} the routes replaced while the search ran, and
-     * {@code seamMismatch} the plans that did not start where they were asked
-     * to. Each is a fallback to replanning from the current position, never a
-     * discarded route.
-     */
-    public record Counts(long armed, long joined, long seamMismatch,
-                         long overrun, long expired, long superseded,
-                         long shortRoute, long divergent) {
     }
 
     private final int[] observedTicks = new int[LATENCY_SAMPLES];
@@ -222,8 +209,8 @@ public final class RouteSplicer {
         return new Join(List.copyOf(nodes), offset);
     }
 
-    public Counts counts() {
-        return new Counts(armed, joined, seamMismatch, overrun, expired,
+    public SpliceCounts counts() {
+        return new SpliceCounts(armed, joined, seamMismatch, overrun, expired,
                 superseded, shortRoute, divergent);
     }
 

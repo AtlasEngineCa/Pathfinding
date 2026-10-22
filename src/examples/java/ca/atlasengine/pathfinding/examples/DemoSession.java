@@ -1,7 +1,7 @@
 package ca.atlasengine.pathfinding.examples;
 
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.NavigationSystem;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
@@ -42,7 +42,8 @@ public final class DemoSession {
     public DemoMob spawn(EntityType type, String label, Pos at) {
         DemoMob mob = new DemoMob(type, label);
         mob.setInstance(instance, at).join();
-        return track(mob.navigateWith(navigation.controller(mob, SPEED)));
+        return track(mob.navigateWith(navigation.controllerBuilder(mob)
+                .movementPerTick(SPEED).build()));
     }
 
     /** Spawns a mob navigating with an explicitly composed profile. */
@@ -51,7 +52,8 @@ public final class DemoSession {
         DemoMob mob = new DemoMob(type, label);
         mob.setInstance(instance, at).join();
         return track(mob.navigateWith(
-                navigation.controller(mob, profile, SPEED)));
+                navigation.controllerBuilder(mob).profile(profile)
+                        .movementPerTick(SPEED).build()));
     }
 
     /** Spawns a mob that pursues {@code quarry} through the shared mesh. */

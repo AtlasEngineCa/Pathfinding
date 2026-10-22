@@ -1,6 +1,16 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.BuiltinMobProfiles;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.BuiltinMobProfiles;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
 import ca.atlasengine.pathfinding.terrain.TerrainCosts;
@@ -15,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TerrainPolicyTest {
     private static final BoundingBox MOB = new BoundingBox(0.6, 1.8, 0.6);
-    private final TerrainClassifier classifier = new TerrainClassifier();
 
     /** Pins the stable defaults used when a profile supplies no override. */
     @Test
@@ -35,17 +44,11 @@ class TerrainPolicyTest {
         assertEquals(27, TerrainType.values().length);
     }
 
-    /**
-     * Every category must be priced, and the deprecated accessor must stay a
-     * faithful alias for the table it now delegates to.
-     */
+    /** Every category must be priced. */
     @Test
-    @SuppressWarnings("deprecation")
     void everyCategoryHasABaselineCost() {
         for (TerrainType type : TerrainType.values()) {
             assertDoesNotThrow(() -> TerrainCosts.baseline(type), type.name());
-            assertEquals(TerrainCosts.baseline(type), type.defaultMalus(),
-                    type.name());
         }
     }
 
@@ -86,18 +89,18 @@ class TerrainPolicyTest {
 
     @Test
     void rawClassifierMatchesExpectedHazardFamilies() {
-        assertEquals(TerrainType.DAMAGING, classifier.raw(Block.CACTUS));
-        assertEquals(TerrainType.DAMAGING, classifier.raw(Block.SWEET_BERRY_BUSH));
-        assertEquals(TerrainType.FIRE, classifier.raw(Block.FIRE));
-        assertEquals(TerrainType.FIRE, classifier.raw(Block.MAGMA_BLOCK));
-        assertEquals(TerrainType.LAVA, classifier.raw(Block.LAVA));
-        assertEquals(TerrainType.WATER, classifier.raw(Block.WATER));
-        assertEquals(TerrainType.STICKY_HONEY, classifier.raw(Block.HONEY_BLOCK));
-        assertEquals(TerrainType.DAMAGE_CAUTIOUS, classifier.raw(Block.WITHER_ROSE));
-        assertEquals(TerrainType.POWDER_SNOW, classifier.raw(Block.POWDER_SNOW));
-        assertEquals(TerrainType.RAIL, classifier.raw(Block.RAIL));
-        assertEquals(TerrainType.FENCE, classifier.raw(Block.OAK_FENCE));
-        assertEquals(TerrainType.DAMAGE_CAUTIOUS, classifier.raw(Block.SULFUR_SPIKE));
+        assertEquals(TerrainType.DAMAGING, TerrainClassifier.raw(Block.CACTUS));
+        assertEquals(TerrainType.DAMAGING, TerrainClassifier.raw(Block.SWEET_BERRY_BUSH));
+        assertEquals(TerrainType.FIRE, TerrainClassifier.raw(Block.FIRE));
+        assertEquals(TerrainType.FIRE, TerrainClassifier.raw(Block.MAGMA_BLOCK));
+        assertEquals(TerrainType.LAVA, TerrainClassifier.raw(Block.LAVA));
+        assertEquals(TerrainType.WATER, TerrainClassifier.raw(Block.WATER));
+        assertEquals(TerrainType.STICKY_HONEY, TerrainClassifier.raw(Block.HONEY_BLOCK));
+        assertEquals(TerrainType.DAMAGE_CAUTIOUS, TerrainClassifier.raw(Block.WITHER_ROSE));
+        assertEquals(TerrainType.POWDER_SNOW, TerrainClassifier.raw(Block.POWDER_SNOW));
+        assertEquals(TerrainType.RAIL, TerrainClassifier.raw(Block.RAIL));
+        assertEquals(TerrainType.FENCE, TerrainClassifier.raw(Block.OAK_FENCE));
+        assertEquals(TerrainType.DAMAGE_CAUTIOUS, TerrainClassifier.raw(Block.SULFUR_SPIKE));
     }
 
     @Test
@@ -106,22 +109,27 @@ class TerrainPolicyTest {
         TestWorld fence = new TestWorld().set(0, 0, 0, Block.OAK_FENCE);
 
         assertEquals(TerrainType.WALKABLE,
-                classifier.classify(rail, new Pos(0.5, 1, 0.5), MOB,
+                TerrainClassifier.classify(rail, new Pos(0.5, 1, 0.5), MOB,
                         MobTraversalProfile.DEFAULT));
         assertEquals(TerrainType.WALKABLE,
-                classifier.classify(fence, new Pos(0.5, 1, 0.5), MOB,
+                TerrainClassifier.classify(fence, new Pos(0.5, 1, 0.5), MOB,
                         MobTraversalProfile.DEFAULT));
     }
 
     @Test
     void entityTypeRegistrySelectsSpecialProfiles() {
-        assertSame(MobTraversalProfile.STRIDER, BuiltinMobProfiles.forEntityType(EntityType.STRIDER));
-        assertSame(MobTraversalProfile.ENDERMAN, BuiltinMobProfiles.forEntityType(EntityType.ENDERMAN));
-        assertSame(MobTraversalProfile.VILLAGER, BuiltinMobProfiles.forEntityType(EntityType.VILLAGER));
+        assertSame(MobTraversalProfile.STRIDER,
+                BuiltinMobProfiles.forEntityType(EntityType.STRIDER));
+        assertSame(MobTraversalProfile.ENDERMAN,
+                BuiltinMobProfiles.forEntityType(EntityType.ENDERMAN));
+        assertSame(MobTraversalProfile.VILLAGER,
+                BuiltinMobProfiles.forEntityType(EntityType.VILLAGER));
         assertSame(MobTraversalProfile.FOX, BuiltinMobProfiles.forEntityType(EntityType.FOX));
-        assertSame(MobTraversalProfile.WATER_ANIMAL, BuiltinMobProfiles.forEntityType(EntityType.COD));
+        assertSame(MobTraversalProfile.WATER_ANIMAL,
+                BuiltinMobProfiles.forEntityType(EntityType.COD));
         assertSame(MobTraversalProfile.BEE, BuiltinMobProfiles.forEntityType(EntityType.BEE));
-        assertSame(MobTraversalProfile.SNIFFER, BuiltinMobProfiles.forEntityType(EntityType.SNIFFER));
+        assertSame(MobTraversalProfile.SNIFFER,
+                BuiltinMobProfiles.forEntityType(EntityType.SNIFFER));
         assertSame(MobTraversalProfile.CAMEL, BuiltinMobProfiles.forEntityType(EntityType.CAMEL));
         assertSame(MobTraversalProfile.BREEZE, BuiltinMobProfiles.forEntityType(EntityType.BREEZE));
         assertSame(MobTraversalProfile.COPPER_GOLEM,
@@ -180,7 +188,9 @@ class TerrainPolicyTest {
                 .maxPathLength(20)
                 .maxVisitedMultiplier(8)
                 .build(), SearchControl.NONE);
-        NavigationProfile tallButForbidden = NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, GroundCapabilities.builder().maxStepHeight(1.5).maxFallDistance(5).allowDiagonal(true).build()).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile tallButForbidden = NavigationProfile.builder(NavigationMode.GROUND,
+                MobTraversalProfile.DEFAULT,
+                GroundCapabilities.builder().maxStepHeight(1.5).build()).build();
         PathResult noFenceCapability = pathfinder.findPath(
                 NavigationRequest.builder(
                                 world, new Pos(0.5, 1, 0.5),
@@ -205,9 +215,15 @@ class TerrainPolicyTest {
             world.column(x, 1, 1, 4, Block.STONE);
         }
         world.set(2, 1, 0, Block.OAK_FENCE);
-        GroundCapabilities jumping = GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(5).allowDiagonal(true).build()
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(1).maxDrop(2).apexClearance(1).build());
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, jumping).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        GroundCapabilities jumping = GroundCapabilities.STANDARD
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .maxRise(1)
+                        .maxDrop(2)
+                        .apexClearance(1)
+                        .build());
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND,
+                MobTraversalProfile.DEFAULT, jumping).build();
 
         PathResult result = new EntityPathfinder().findPath(
                 NavigationRequest.builder(world,
@@ -232,7 +248,7 @@ class TerrainPolicyTest {
         world.set(0, 1, 1, Block.STONE);
         BoundingBox nonSquare = new BoundingBox(1.8, 1.8, 0.2);
 
-        TerrainType type = classifier.classifyAnchored(
+        TerrainType type = TerrainClassifier.classifyAnchored(
                 world, 0, 1, 0, nonSquare, MobTraversalProfile.DEFAULT);
 
         assertEquals(TerrainType.WALKABLE, type,
@@ -259,8 +275,8 @@ class TerrainPolicyTest {
                 .malus(TerrainType.WATER_BORDER, 4)
                 .build();
 
-        TerrainType type = classifier.classifyAnchoredAmphibious(
-                world, 0, 1, 0, wide, profile);
+        TerrainType type = TerrainClassifier.classifyAnchoredAmphibious(
+                world, 0, 1, 0, wide, profile, SearchControl.NONE);
 
         assertEquals(TerrainType.WATER_BORDER, type,
                 "each WATER cell becomes WATER_BORDER before the complete "
@@ -270,5 +286,4 @@ class TerrainPolicyTest {
     private static TestWorld lane() {
         return new TestWorld().floor(-2, 8, -3, 3, 0, Block.STONE);
     }
-
 }

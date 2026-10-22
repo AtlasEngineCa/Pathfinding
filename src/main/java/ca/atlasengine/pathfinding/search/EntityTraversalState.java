@@ -1,12 +1,13 @@
 package ca.atlasengine.pathfinding.search;
 
-import net.minestom.server.instance.block.Block;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.instance.block.Block;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
 import static ca.atlasengine.pathfinding.internal.Points.finite;
 
 /**
@@ -25,20 +26,13 @@ public record EntityTraversalState(
 ) {
     /** Generous ceiling preventing target-normalization scans from becoming unbounded. */
     public static final int MAX_BUILD_HEIGHT_SPAN = 4096;
-    static final int OVERWORLD_MIN_BUILD_HEIGHT = -64;
-    static final int OVERWORLD_MAX_BUILD_HEIGHT = 319;
+    public static final int OVERWORLD_MIN_BUILD_HEIGHT = -64;
+    public static final int OVERWORLD_MAX_BUILD_HEIGHT = 319;
 
     public static final EntityTraversalState GROUNDED =
             new EntityTraversalState(
                     true, false, Set.of(), OVERWORLD_MIN_BUILD_HEIGHT,
                     OVERWORLD_MAX_BUILD_HEIGHT, List.of());
-
-    public EntityTraversalState(boolean onGround, boolean inWater,
-                              Set<Block> standableFluids,
-                              int minBuildHeight) {
-        this(onGround, inWater, standableFluids, minBuildHeight,
-                OVERWORLD_MAX_BUILD_HEIGHT, List.of());
-    }
 
     public EntityTraversalState {
         if (standableFluids == null
@@ -61,7 +55,6 @@ public record EntityTraversalState(
             throw new IllegalArgumentException("build height");
         }
     }
-
 
     /** Identity comparison, so a fluid's level never changes the answer. */
     public boolean canStandOn(Block block) {

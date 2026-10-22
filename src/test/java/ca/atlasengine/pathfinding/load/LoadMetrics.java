@@ -1,8 +1,8 @@
 package ca.atlasengine.pathfinding.load;
 
+import ca.atlasengine.pathfinding.NavigationState;
 import ca.atlasengine.pathfinding.metrics.LatencyDistribution;
 import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
-import ca.atlasengine.pathfinding.NavigationState;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

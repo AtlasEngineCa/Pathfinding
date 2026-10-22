@@ -1,10 +1,11 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.event.NavigationCompletedEvent;
+import ca.atlasengine.pathfinding.event.NavigationCancelledEvent;
+import ca.atlasengine.pathfinding.event.NavigationCompletedEvent;
 import ca.atlasengine.pathfinding.event.NavigationEvent;
 import ca.atlasengine.pathfinding.event.PathComputedEvent;
 import ca.atlasengine.pathfinding.event.RouteReplanEvent;
-import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.result.PathStatus;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -34,11 +35,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 class NavigationEventTest {
     @Test
     void eventsReachTheNodeOnTheTickingThread(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         List<NavigationEvent> seen = new CopyOnWriteArrayList<>();
@@ -87,11 +86,9 @@ class NavigationEventTest {
 
     @Test
     void anOutcomeIsAnnouncedOnceRatherThanEveryTickItPersists(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         List<NavigationEvent> arrivals = new CopyOnWriteArrayList<>();
@@ -102,14 +99,8 @@ class NavigationEventTest {
             EntityNavigationController controller = navigation.controller(mob);
             controller.moveTo(new Pos(3.5, 40, 0.5));
 
-            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (arrivals.isEmpty()) {
-                if (System.nanoTime() > deadline) {
-                    fail("never arrived: " + controller.state());
-                }
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.tickUntil(env, controller, () -> !arrivals.isEmpty(),
+                    () -> "never arrived: " + controller.state());
             // COMPLETED persists, so a state-shaped implementation would
             // announce it again on every one of these ticks.
             for (int i = 0; i < 20; i++) {
@@ -126,11 +117,9 @@ class NavigationEventTest {
 
     @Test
     void watchedBlockChangesReachEveryControllerTheSystemOwns(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         try (NavigationSystem navigation = NavigationSystem.builder()
@@ -139,25 +128,15 @@ class NavigationEventTest {
             EntityNavigationController controller = navigation.controller(mob);
             controller.moveTo(new Pos(12.5, 40, 0.5));
 
-            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (controller.nodes().isEmpty()) {
-                if (System.nanoTime() > deadline) fail("no route was produced");
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.awaitRoute(env, controller);
             int before = controller.generation();
 
             for (int y = 40; y < 43; y++) instance.setBlock(6, y, 0, Block.STONE);
             env.tick();
 
-            deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (controller.generation() == before) {
-                if (System.nanoTime() > deadline) {
-                    fail("a watched block change did not replan the route");
-                }
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.tickUntil(env, controller,
+                    () -> controller.generation() != before,
+                    () -> "a watched block change did not replan the route");
             assertTrue(controller.generation() > before,
                     "the route was replanned after the world changed");
             controller.close();
@@ -168,11 +147,9 @@ class NavigationEventTest {
 
     @Test
     void aBlockChangeIsAnnouncedAsItsOwnReplanReason(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         List<RouteReplanEvent.Reason> reasons = new ArrayList<>();
@@ -184,26 +161,16 @@ class NavigationEventTest {
             EntityNavigationController controller = navigation.controller(mob);
             controller.moveTo(new Pos(12.5, 40, 0.5));
 
-            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (controller.nodes().isEmpty()) {
-                if (System.nanoTime() > deadline) fail("no route was produced");
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.awaitRoute(env, controller);
             assertTrue(reasons.contains(RouteReplanEvent.Reason.NEW_TARGET),
                     "the first plan came from a new target, saw " + reasons);
 
             for (int y = 40; y < 43; y++) instance.setBlock(6, y, 0, Block.STONE);
             env.tick();
 
-            deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (!reasons.contains(RouteReplanEvent.Reason.BLOCK_CHANGE)) {
-                if (System.nanoTime() > deadline) {
-                    fail("a block change was not announced; saw " + reasons);
-                }
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.tickUntil(env, controller,
+                    () -> reasons.contains(RouteReplanEvent.Reason.BLOCK_CHANGE),
+                    () -> "a block change was not announced; saw " + reasons);
             controller.close();
         } finally {
             mob.remove();
@@ -212,11 +179,9 @@ class NavigationEventTest {
 
     @Test
     void aSystemNobodyListensToBuildsNoEvents(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         try (NavigationSystem navigation = NavigationSystem.builder()
@@ -224,14 +189,9 @@ class NavigationEventTest {
             // eventNode() is never called, so no node exists to emit into.
             EntityNavigationController controller = navigation.controller(mob);
             controller.moveTo(new Pos(3.5, 40, 0.5));
-            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (controller.state() != NavigationState.COMPLETED) {
-                if (System.nanoTime() > deadline) {
-                    fail("never arrived: " + controller.state());
-                }
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.tickUntil(env, controller,
+                    () -> controller.state() == NavigationState.COMPLETED,
+                    () -> "never arrived: " + controller.state());
             // Navigating without an event node must behave identically.
             assertEquals(NavigationState.COMPLETED, controller.state());
             controller.close();
@@ -242,11 +202,9 @@ class NavigationEventTest {
 
     @Test
     void aNodeAskedForLateStillReceivesEvents(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         env.tick();
 
         List<NavigationEvent> seen = new CopyOnWriteArrayList<>();
@@ -258,15 +216,63 @@ class NavigationEventTest {
                     .addListener(NavigationCompletedEvent.class, seen::add);
 
             controller.moveTo(new Pos(3.5, 40, 0.5));
-            long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
-            while (seen.isEmpty()) {
-                if (System.nanoTime() > deadline) {
-                    fail("a controller created before the node was ignored");
-                }
-                controller.tick();
-                env.tick();
-            }
+            TestWorlds.tickUntil(env, controller, () -> !seen.isEmpty(),
+                    () -> "a controller created before the node was ignored");
             controller.close();
+        } finally {
+            mob.remove();
+        }
+    }
+
+    @Test
+    void closingAFinishedNavigationKeepsItsOutcome(Env env) {
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
+        env.tick();
+
+        List<NavigationEvent> cancellations = new CopyOnWriteArrayList<>();
+        try (NavigationSystem navigation = NavigationSystem.builder()
+                .parallelism(1).queueCapacity(8).build()) {
+            navigation.eventNode().addListener(
+                    NavigationCancelledEvent.class, cancellations::add);
+            EntityNavigationController controller = navigation.controller(mob);
+            controller.moveTo(new Pos(3.5, 40, 0.5));
+            TestWorlds.tickUntil(env, controller,
+                    () -> controller.state() == NavigationState.COMPLETED,
+                    () -> "never arrived: " + controller.state());
+
+            controller.close();
+            assertEquals(NavigationState.COMPLETED, controller.state(),
+                    "closing does not rewrite how the navigation ended");
+            assertTrue(cancellations.isEmpty(),
+                    "a completed navigation is not also cancelled");
+        } finally {
+            mob.remove();
+        }
+    }
+
+    @Test
+    void closingANavigationInProgressCancelsItOnce(Env env) {
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
+        env.tick();
+
+        List<NavigationEvent> cancellations = new CopyOnWriteArrayList<>();
+        try (NavigationSystem navigation = NavigationSystem.builder()
+                .parallelism(1).queueCapacity(8).build()) {
+            navigation.eventNode().addListener(
+                    NavigationCancelledEvent.class, cancellations::add);
+            EntityNavigationController controller = navigation.controller(mob);
+            controller.moveTo(new Pos(12.5, 40, 0.5));
+            TestWorlds.awaitRoute(env, controller);
+
+            controller.close();
+            controller.close();
+            assertEquals(NavigationState.CANCELLED, controller.state());
+            assertEquals(1, cancellations.size(),
+                    "one navigation reports one outcome");
         } finally {
             mob.remove();
         }

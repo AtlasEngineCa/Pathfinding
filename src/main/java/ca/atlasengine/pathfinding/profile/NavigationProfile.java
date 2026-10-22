@@ -91,39 +91,38 @@ public final class NavigationProfile {
     }
 
     public NavigationProfile withNavigationType(NavigationMode type) {
-        return new NavigationProfile(type, mobProfile,
-                groundCapabilities, allowBreaching,
-                prefersShallowWater, avoidSun,
-                directPathIgnoresFluids, pathToTargetsBelowSurface);
+        return toBuilder(type, mobProfile, groundCapabilities).build();
     }
 
     public NavigationProfile withMobProfile(MobTraversalProfile profile) {
-        return new NavigationProfile(mode, profile,
-                groundCapabilities, allowBreaching,
-                prefersShallowWater, avoidSun,
-                directPathIgnoresFluids, pathToTargetsBelowSurface);
+        return toBuilder(mode, profile, groundCapabilities).build();
     }
 
     public NavigationProfile withGroundCapabilities(
             GroundCapabilities capabilities) {
-        return new NavigationProfile(mode, mobProfile,
-                capabilities, allowBreaching,
-                prefersShallowWater, avoidSun,
-                directPathIgnoresFluids, pathToTargetsBelowSurface);
+        return toBuilder(mode, mobProfile, capabilities).build();
     }
 
     public NavigationProfile withAvoidSun(boolean value) {
-        return new NavigationProfile(mode, mobProfile,
-                groundCapabilities, allowBreaching,
-                prefersShallowWater, value,
-                directPathIgnoresFluids, pathToTargetsBelowSurface);
+        return toBuilder(mode, mobProfile, groundCapabilities)
+                .avoidSun(value).build();
     }
 
     public NavigationProfile withPathToTargetsBelowSurface(boolean value) {
-        return new NavigationProfile(mode, mobProfile,
-                groundCapabilities, allowBreaching,
-                prefersShallowWater, avoidSun,
-                directPathIgnoresFluids, value);
+        return toBuilder(mode, mobProfile, groundCapabilities)
+                .pathToTargetsBelowSurface(value).build();
+    }
+
+    /** This profile's flags over the given required pieces. */
+    private Builder toBuilder(NavigationMode mode,
+                              MobTraversalProfile mobProfile,
+                              GroundCapabilities groundCapabilities) {
+        return new Builder(mode, mobProfile, groundCapabilities)
+                .allowBreaching(allowBreaching)
+                .prefersShallowWater(prefersShallowWater)
+                .avoidSun(avoidSun)
+                .directPathIgnoresFluids(directPathIgnoresFluids)
+                .pathToTargetsBelowSurface(pathToTargetsBelowSurface);
     }
 
     @Override
@@ -212,9 +211,9 @@ public final class NavigationProfile {
 
         public NavigationProfile build() {
             return new NavigationProfile(mode, mobProfile,
-                groundCapabilities, allowBreaching,
-                prefersShallowWater, avoidSun,
-                directPathIgnoresFluids, pathToTargetsBelowSurface);
+                    groundCapabilities, allowBreaching,
+                    prefersShallowWater, avoidSun,
+                    directPathIgnoresFluids, pathToTargetsBelowSurface);
         }
     }
 }

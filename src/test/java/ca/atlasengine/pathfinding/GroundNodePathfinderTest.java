@@ -1,18 +1,31 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.influence.InfluenceResult;
+import ca.atlasengine.pathfinding.influence.InfluenceResult;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
-import net.minestom.server.instance.block.Block;
 import net.minestom.server.entity.EntityType;
+import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,8 +36,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class GroundNodePathfinderTest {
     private static final BoundingBox STANDARD =
             new BoundingBox(0.6, 1.8, 0.6);
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     @Test
     void climbableRoutesAreExplicitlyOptInAndEmitVerticalClimbNodes() {
@@ -34,11 +45,16 @@ class GroundNodePathfinderTest {
         GroundCapabilities climbing = GroundCapabilities.STANDARD
                 .withClimbables(ClimbableCapabilities.STANDARD);
         GroundCapabilities climbingWithoutLongFalls =
-                GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1).allowDiagonal(true).horizontalEdgeCost(false).platformJump(PlatformJumpCapabilities.DISABLED).climbables(ClimbableCapabilities.STANDARD).build();
+                GroundCapabilities.builder()
+                        .maxFallDistance(1)
+                        .climbables(ClimbableCapabilities.STANDARD)
+                        .build();
 
         PathResult baselineGround = find(world, start, top, STANDARD, 16);
-        PathResult ascent = pathfinder.findPath(world, start, top, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), climbing, SearchControl.NONE);
-        PathResult descent = pathfinder.findPath(world, top, start, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), climbingWithoutLongFalls, SearchControl.NONE);
+        PathResult ascent = GroundSearches.find(world, start, top, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, climbing, SearchControl.NONE);
+        PathResult descent = GroundSearches.find(world, top, start, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, climbingWithoutLongFalls, SearchControl.NONE);
 
         assertFalse(baselineGround.found(),
                 "ordinary baseline ground profiles must not invent ladder edges");
@@ -56,7 +72,9 @@ class GroundNodePathfinderTest {
         GroundCapabilities climbing = GroundCapabilities.STANDARD
                 .withClimbables(ClimbableCapabilities.STANDARD);
 
-        PathResult result = pathfinder.findPath(world, new Pos(-0.5, 1, 0.5), new Pos(1.5, 5, 0.5), new BoundingBox(1.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), climbing, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(-0.5, 1, 0.5), new Pos(1.5, 5, 0.5),
+                new BoundingBox(1.8, 1.8, 0.8), MobTraversalProfile.DEFAULT, 16, 8, climbing,
+                SearchControl.NONE);
 
         assertTrue(result.found(), result::toString);
         assertTrue(result.nodes().stream()
@@ -89,7 +107,9 @@ class GroundNodePathfinderTest {
                 }
             }
 
-            PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(1.5, 5, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), climbing, SearchControl.NONE);
+            PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                    new Pos(1.5, 5, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 16, 8, climbing,
+                    SearchControl.NONE);
 
             assertTrue(BlockTraversalData.isClimbable(state), id);
             assertTrue(result.found(), () -> id + ": " + result);
@@ -104,16 +124,26 @@ class GroundNodePathfinderTest {
         Pos bottom = new Pos(0.5, 1, 0.5);
         Pos top = new Pos(1.5, 5, 0.5);
         GroundCapabilities ascentOnly = GroundCapabilities.STANDARD
-                .withClimbables(ClimbableCapabilities.builder().enabled(true).allowAscending(true).allowDescending(false).verticalCostMultiplier(1).build());
+                .withClimbables(ClimbableCapabilities.ascendOnly(1));
         GroundCapabilities ascentOnlyWithoutLongFalls =
-                GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1).allowDiagonal(true).horizontalEdgeCost(false).platformJump(PlatformJumpCapabilities.DISABLED).climbables(ClimbableCapabilities.builder().enabled(true).allowAscending(true).allowDescending(false).verticalCostMultiplier(1).build()).build();
-        GroundCapabilities descentOnly = GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1).allowDiagonal(true).horizontalEdgeCost(false).platformJump(PlatformJumpCapabilities.DISABLED).climbables(ClimbableCapabilities.builder().enabled(true).allowAscending(false).allowDescending(true).verticalCostMultiplier(1).build()).build();
+                GroundCapabilities.builder()
+                        .maxFallDistance(1)
+                        .climbables(ClimbableCapabilities.ascendOnly(1))
+                        .build();
+        GroundCapabilities descentOnly = GroundCapabilities.builder()
+                .maxFallDistance(1)
+                .climbables(ClimbableCapabilities.descendOnly(1))
+                .build();
 
-        PathResult up = pathfinder.findPath(world, bottom, top, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), ascentOnly, SearchControl.NONE);
-        PathResult downRejected = pathfinder.findPath(world, top, bottom, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), ascentOnlyWithoutLongFalls, SearchControl.NONE);
-        PathResult down = pathfinder.findPath(world, top, bottom, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), descentOnly, SearchControl.NONE);
+        PathResult up = GroundSearches.find(world, bottom, top, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, ascentOnly, SearchControl.NONE);
+        PathResult downRejected = GroundSearches.find(world, top, bottom, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, ascentOnlyWithoutLongFalls, SearchControl.NONE);
+        PathResult down = GroundSearches.find(world, top, bottom, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, descentOnly, SearchControl.NONE);
         TestWorld broken = ladderTower(5).set(1, 3, 0, Block.AIR);
-        PathResult gap = pathfinder.findPath(broken, bottom, top, STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(8).build(), ascentOnly, SearchControl.NONE);
+        PathResult gap = GroundSearches.find(broken, bottom, top, STANDARD,
+                MobTraversalProfile.DEFAULT, 16, 8, ascentOnly, SearchControl.NONE);
 
         assertTrue(up.found(), up::toString);
         assertFalse(downRejected.found());
@@ -126,11 +156,15 @@ class GroundNodePathfinderTest {
     void optInPlatformJumpCrossesOneCellGap() {
         TestWorld world = platformGap(2);
         GroundCapabilities jumper = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(1)
+                        .build());
 
         PathResult ordinary = find(world, new Pos(0.5, 1, 0.5),
                 new Pos(2.5, 1, 0.5), STANDARD, 5);
-        PathResult jumping = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(5).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult jumping = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 5, 8, jumper, SearchControl.NONE);
 
         assertFalse(ordinary.found());
         assertTrue(jumping.found(), jumping::toString);
@@ -138,7 +172,9 @@ class GroundNodePathfinderTest {
         assertEquals(PathNode.Movement.JUMP,
                 jumping.nodes().getLast().movement());
 
-        PathResult arcBudgetRejected = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(2.5).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult arcBudgetRejected = GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 2.5, 8, jumper,
+                SearchControl.NONE);
         assertFalse(arcBudgetRejected.found(),
                 "maxPathLength must charge the jump arc, not only its chord");
     }
@@ -147,12 +183,20 @@ class GroundNodePathfinderTest {
     void configuredJumpDistanceIsAnInclusiveHardBoundary() {
         TestWorld world = platformGap(3);
         GroundCapabilities tooShort = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(1)
+                        .build());
         GroundCapabilities exact = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(3)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult rejected = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(6).reachRange(0).maxVisitedMultiplier(8).build(), tooShort, SearchControl.NONE);
-        PathResult accepted = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(6).reachRange(0).maxVisitedMultiplier(8).build(), exact, SearchControl.NONE);
+        PathResult rejected = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 6, 8, tooShort, SearchControl.NONE);
+        PathResult accepted = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 6, 8, exact, SearchControl.NONE);
 
         assertFalse(rejected.found());
         assertTrue(accepted.found(), accepted::toString);
@@ -166,9 +210,19 @@ class GroundNodePathfinderTest {
         TestWorld rise = platformGapWithLandingSupportY(2, 1);
         TestWorld drop = platformGapWithLandingSupportY(2, -1);
         GroundCapabilities levelOnly = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0.99).maxDrop(0.99).apexClearance(2).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(0.99)
+                        .maxDrop(0.99)
+                        .apexClearance(2)
+                        .build());
         GroundCapabilities oneBlock = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(1).maxDrop(1).apexClearance(2).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(1)
+                        .maxDrop(1)
+                        .apexClearance(2)
+                        .build());
 
         PathResult riseRejected = jumpPath(
                 rise, new Pos(0.5, 1, 0.5),
@@ -200,9 +254,13 @@ class GroundNodePathfinderTest {
             world.column(x, 1, 0, 4, Block.STONE);
         }
         GroundCapabilities jumper = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(6.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(12).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(6.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 12, 8, jumper, SearchControl.NONE);
 
         assertEquals(PathStatus.PARTIAL, result.status());
         assertEquals(2, result.nodes().getLast().graphX());
@@ -217,9 +275,13 @@ class GroundNodePathfinderTest {
     void jumpCandidateChecksScaleLinearlyWithDistance() {
         TestWorld world = new TestWorld().set(0, 0, 0, Block.STONE);
         GroundCapabilities jumper = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(32).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(32)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(100.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(64).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(100.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 64, 8, jumper, SearchControl.NONE);
 
         assertEquals(PathStatus.PARTIAL, result.status());
         assertEquals(1, result.visitedNodes());
@@ -234,10 +296,16 @@ class GroundNodePathfinderTest {
         TestWorld ceiling = platformGap(2)
                 .set(1, 3, 0, Block.STONE);
         GroundCapabilities jumper = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult accepted = pathfinder.findPath(clear, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(5).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
-        PathResult rejected = pathfinder.findPath(ceiling, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(5).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult accepted = GroundSearches.find(clear, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 5, 8, jumper, SearchControl.NONE);
+        PathResult rejected = GroundSearches.find(ceiling, new Pos(0.5, 1, 0.5),
+                new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 5, 8, jumper,
+                SearchControl.NONE);
 
         assertTrue(accepted.found(), accepted::toString);
         assertFalse(rejected.found(),
@@ -255,9 +323,15 @@ class GroundNodePathfinderTest {
                         .withProperty("facing", "east")
                         .withProperty("half", "bottom"));
         GroundCapabilities jumper = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(1).maxDrop(1).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .maxRise(1)
+                        .maxDrop(1)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(10).reachRange(0).maxVisitedMultiplier(8).build(), jumper, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 10, 8, jumper, SearchControl.NONE);
 
         assertTrue(result.found(), result::toString);
         assertTrue(result.nodes().stream().noneMatch(node ->
@@ -342,7 +416,8 @@ class GroundNodePathfinderTest {
                 .malus(TerrainType.WATER, 0)
                 .build();
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(1.5, 1, 0.5), STANDARD, profile, GroundSearchLimits.builder().maxPathLength(8).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(1.5, 1, 0.5),
+                STANDARD, profile, 8, 8, GroundCapabilities.STANDARD, SearchControl.NONE);
 
         assertTrue(result.found(), result::toString);
         assertEquals(1, result.nodes().getLast().graphX());
@@ -361,8 +436,12 @@ class GroundNodePathfinderTest {
             world.column(x, 1, 1, 6, Block.STONE);
         }
 
-        PathResult exactBoundary = pathfinder.findPath(world, new Pos(0.5, 4, 0.5), new Pos(3.5, 2, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(8).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(2).allowDiagonal(true).build(), SearchControl.NONE);
-        PathResult oneTooFar = pathfinder.findPath(world, new Pos(0.5, 4, 0.5), new Pos(3.5, 2, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(8).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1).allowDiagonal(true).build(), SearchControl.NONE);
+        PathResult exactBoundary = GroundSearches.find(world, new Pos(0.5, 4, 0.5),
+                new Pos(3.5, 2, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 8, 8,
+                GroundCapabilities.builder().maxFallDistance(2).build(), SearchControl.NONE);
+        PathResult oneTooFar = GroundSearches.find(world, new Pos(0.5, 4, 0.5),
+                new Pos(3.5, 2, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 8, 8,
+                GroundCapabilities.builder().maxFallDistance(1).build(), SearchControl.NONE);
 
         assertTrue(exactBoundary.found(), () -> exactBoundary.nodes().toString());
         assertEquals(2, exactBoundary.nodes().get(1).blockY());
@@ -373,7 +452,9 @@ class GroundNodePathfinderTest {
     @Test
     void subBlockStepCapabilityStillGetsOneRecursiveJumpNode() {
         TestWorld world = jumpCorridor(Block.STONE);
-        PathResult result = pathfinder.findPath(world, new Pos(1.5, 1, 0.5), new Pos(3.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(6).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.builder().maxStepHeight(0.5).maxFallDistance(5).allowDiagonal(true).build(), SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(1.5, 1, 0.5), new Pos(3.5, 1, 0.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 6, 8,
+                GroundCapabilities.builder().maxStepHeight(0.5).build(), SearchControl.NONE);
 
         assertTrue(result.found(), () -> result.nodes().toString());
         assertTrue(result.nodes().stream().anyMatch(node ->
@@ -389,7 +470,8 @@ class GroundNodePathfinderTest {
 
         PathResult airborne = dispatch(world, new Pos(0.5, 4.2, 0.5),
                 new Pos(3.5, 1, 0.5), zombie,
-                new EntityTraversalState(false, false, java.util.Set.of(), -64));
+                new EntityTraversalState(false, false, Set.of(), -64,
+                        EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT, List.of()));
         PathResult claimedGrounded = dispatch(world, new Pos(0.5, 4.2, 0.5),
                 new Pos(3.5, 1, 0.5), zombie,
                 EntityTraversalState.GROUNDED);
@@ -415,9 +497,11 @@ class GroundNodePathfinderTest {
             }
         }
         EntityTraversalState swimming = new EntityTraversalState(
-                false, true, java.util.Set.of(), -64);
+                false, true, Set.of(), -64, EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT,
+                List.of());
         EntityTraversalState lavaStanding = new EntityTraversalState(
-                false, false, java.util.Set.of(Block.LAVA), -64);
+                false, false, Set.of(Block.LAVA), -64,
+                EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT, List.of());
 
         PathResult chicken = dispatch(
                 water, new Pos(0.5, 1.2, 0.5), new Pos(3.5, 3, 0.5),
@@ -493,8 +577,12 @@ class GroundNodePathfinderTest {
         TestWorld world = new TestWorld().floor(
                 -3, 8, -3, 3, 0, Block.STONE);
         double oneExpansionBudget = 2.0 / (16 * 16);
-        PathResult discovered = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(12).reachRange(0).maxVisitedMultiplier(oneExpansionBudget).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
-        PathResult startOnly = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(12).reachRange(0).maxVisitedMultiplier(1.0 / (16 * 16)).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult discovered = GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 12, oneExpansionBudget,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult startOnly = GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, 12, 1.0 / (16 * 16),
+                GroundCapabilities.STANDARD, SearchControl.NONE);
 
         assertEquals(PathStatus.PARTIAL, discovered.status());
         assertEquals(1, discovered.visitedNodes());
@@ -517,7 +605,9 @@ class GroundNodePathfinderTest {
         BoundingBox offsetBox = new BoundingBox(
                 0.6, 1.8, 0.6, new Vec(0.3, 0, 0.3));
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.8, 1, 0.8), new Pos(4.5, 1, 1.5), offsetBox, MobTraversalProfile.DEFAULT, GroundSearchLimits.ofPathLength(12), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.8, 1, 0.8), new Pos(4.5, 1, 1.5),
+                offsetBox, MobTraversalProfile.DEFAULT, 12, 1, GroundCapabilities.STANDARD,
+                SearchControl.NONE);
 
         assertTrue(result.found(), result::toString);
         assertEquals(1, result.nodes().getFirst().graphX());
@@ -548,7 +638,9 @@ class GroundNodePathfinderTest {
         TestWorld world = new TestWorld().floor(
                 -3, 8, -3, 8, 0, Block.STONE);
 
-        PathResult result = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(4.5, 1, 4.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.ofPathLength(20), GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(5).allowDiagonal(false).build(), SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(4.5, 1, 4.5),
+                STANDARD, MobTraversalProfile.DEFAULT, 20, 1,
+                GroundCapabilities.builder().allowDiagonal(false).build(), SearchControl.NONE);
 
         assertTrue(result.found(), result::toString);
         for (int index = 1; index < result.nodes().size(); index++) {
@@ -562,13 +654,15 @@ class GroundNodePathfinderTest {
 
     private PathResult find(TestWorld world, Pos start, Pos goal,
                             BoundingBox box, double maxLength) {
-        return pathfinder.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(maxLength).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, maxLength,
+                8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private PathResult jumpPath(
             TestWorld world, Pos start, Pos goal, BoundingBox box,
             GroundCapabilities capabilities) {
-        return pathfinder.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(12).reachRange(0).maxVisitedMultiplier(8).build(), capabilities, SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, 12, 8,
+                capabilities, SearchControl.NONE);
     }
 
     private static PathResult dispatch(

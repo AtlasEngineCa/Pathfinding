@@ -1,7 +1,9 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner;
+import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner;
 import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner.Continuation;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStop;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import org.junit.jupiter.api.Test;
@@ -31,12 +33,12 @@ class PartialRouteCutoffTest {
 
         replanner.beginSegment(11);
         assertEquals(Continuation.REPLAN, replanner.continueLongPartialRoute(
-                        ORIGIN, target(8.0001), route(3)),
+                        ORIGIN, target(8.0001), route(3), PathStop.NOT_SEARCHED),
                 "a target past the radius still deserves another segment");
 
         replanner.beginSegment(11);
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                        ORIGIN, target(8), route(4)),
+                        ORIGIN, target(8), route(4), PathStop.NOT_SEARCHED),
                 "a target inside the radius is terminal however productive "
                         + "the segment that ended there was");
     }
@@ -48,11 +50,11 @@ class PartialRouteCutoffTest {
 
         replanner.beginSegment(21.999);
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), route(3)));
+                ORIGIN, target(20), route(3), PathStop.NOT_SEARCHED));
 
         replanner.beginSegment(22);
         assertEquals(Continuation.REPLAN, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), route(4)));
+                ORIGIN, target(20), route(4), PathStop.NOT_SEARCHED));
     }
 
     @Test
@@ -62,17 +64,17 @@ class PartialRouteCutoffTest {
 
         replanner.beginSegment(22);
         assertEquals(Continuation.REPLAN, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), route(5)));
+                ORIGIN, target(20), route(5), PathStop.NOT_SEARCHED));
 
         replanner.beginSegment(22);
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), route(5)));
+                ORIGIN, target(20), route(5), PathStop.NOT_SEARCHED));
 
         // A new navigation forgets the endpoint the previous one exhausted.
         replanner.reset(40);
         replanner.beginSegment(22);
         assertEquals(Continuation.REPLAN, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), route(5)));
+                ORIGIN, target(20), route(5), PathStop.NOT_SEARCHED));
     }
 
     @Test
@@ -82,9 +84,9 @@ class PartialRouteCutoffTest {
         replanner.beginSegment(22);
 
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                ORIGIN, null, route(5)));
+                ORIGIN, null, route(5), PathStop.NOT_SEARCHED));
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                ORIGIN, target(20), List.of()));
+                ORIGIN, target(20), List.of(), PathStop.NOT_SEARCHED));
     }
 
     @Test
@@ -95,7 +97,7 @@ class PartialRouteCutoffTest {
 
         replanner.beginSegment(9);
         assertEquals(Continuation.WIDEN, replanner.continueLongPartialRoute(
-                        ORIGIN, overhead, route(3)),
+                        ORIGIN, overhead, route(3), PathStop.NOT_SEARCHED),
                 "a rise the search could not cover is worth a wider budget");
 
         assertEquals(1, replanner.searchRangeMultiplier());
@@ -109,7 +111,7 @@ class PartialRouteCutoffTest {
 
         replanner.beginSegment(9);
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                        ORIGIN, overhead, route(4)),
+                        ORIGIN, overhead, route(4), PathStop.NOT_SEARCHED),
                 "an exhausted budget makes the rise terminal too");
     }
 

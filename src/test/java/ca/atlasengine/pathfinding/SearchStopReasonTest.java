@@ -1,7 +1,17 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.result.PathStop;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner;
+import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner;
 import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner.Continuation;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.result.PathStop;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
@@ -166,7 +176,7 @@ class SearchStopReasonTest {
         PartialRouteReplanner replanner = radiusCase();
 
         assertEquals(Continuation.STOP, replanner.continueLongPartialRoute(
-                        ORIGIN, target(8), longSegment()),
+                        ORIGIN, target(8), longSegment(), PathStop.NOT_SEARCHED),
                 "a route with no recorded reason falls back to the radius");
     }
 

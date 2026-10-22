@@ -1,8 +1,14 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.NavigationPlanCache;
-import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
@@ -40,7 +46,7 @@ class CachedPlanReplayTest {
             NavigationProfile profile =
                     BuiltinNavigationProfiles.forEntity(zombie);
             EntityNavigationController controller =
-                    new EntityNavigationController(
+                    TestWorlds.controller(
                             zombie, service, profile, 0.18);
             zombie.controller = controller;
             NavigationPlan plan = planned(instance, zombie, profile);
@@ -140,9 +146,7 @@ class CachedPlanReplayTest {
     }
 
     private static Instance prepared(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

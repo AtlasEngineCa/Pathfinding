@@ -51,7 +51,7 @@ public final class BlockAvoidanceInfluence implements NavigationInfluence {
             for (int y = point.blockY() - radius; y <= point.blockY() + radius; y++) {
                 for (int z = point.blockZ() - radius; z <= point.blockZ() + radius; z++) {
                     if ((reads++ & (CANCELLATION_CHECK_INTERVAL - 1)) == 0
-                            && (control.cancelled() || control.timedOut())) {
+                            && control.interrupted()) {
                         return InfluenceResult.forbidden(
                                 "avoidance_scan_interrupted");
                     }

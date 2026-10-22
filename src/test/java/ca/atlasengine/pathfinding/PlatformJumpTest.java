@@ -1,6 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
@@ -22,14 +28,15 @@ class PlatformJumpTest {
     private static final BoundingBox NARROW = new BoundingBox(0.6, 1.8, 0.6);
     /** floor(1.8 + 1) = 2, so the footprint spans two cells per axis. */
     private static final BoundingBox WIDE = new BoundingBox(1.8, 1.8, 1.8);
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     @ParameterizedTest
     @ValueSource(ints = {2, 3, 4, 5, 6})
     void configuredDistanceCrossesExactlyThatManyCellsAndNoMore(
             int maximumDistance) {
-        PlatformJumpCapabilities jump = PlatformJumpCapabilities.builder().maxHorizontalDistance(maximumDistance).maxRise(0).maxDrop(0).apexClearance(1).build();
+        PlatformJumpCapabilities jump = PlatformJumpCapabilities.builder()
+                .maxHorizontalDistance(maximumDistance)
+                .apexClearance(1)
+                .build();
 
         PathResult exact = jumpPath(islands(maximumDistance),
                 new Pos(0.5, 1, 0.5),
@@ -53,7 +60,12 @@ class PlatformJumpTest {
     @ValueSource(doubles = {0, 1, 1.5, 1.999})
     void distancesBelowTwoAreDisabledAndEmitNoJumpEdges(double distance) {
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(distance).maxRise(4).maxDrop(4).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(distance)
+                        .maxRise(4)
+                        .maxDrop(4)
+                        .apexClearance(1)
+                        .build();
 
         PathResult result = jumpPath(islands(2), new Pos(0.5, 1, 0.5),
                 new Pos(2.5, 1, 0.5), NARROW, jump);
@@ -82,7 +94,11 @@ class PlatformJumpTest {
     @ValueSource(ints = {0, 1, 2, 3})
     void configuredRiseIsAnInclusiveBoundaryAtEveryLimit(int maximumRise) {
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(maximumRise).maxDrop(0).apexClearance(2).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(maximumRise)
+                        .apexClearance(2)
+                        .build();
 
         PathResult exact = jumpPath(islandsAtY(2, maximumRise),
                 new Pos(0.5, 1, 0.5), new Pos(2.5, maximumRise + 1, 0.5),
@@ -102,7 +118,11 @@ class PlatformJumpTest {
     @ValueSource(ints = {0, 1, 2, 3})
     void configuredDropIsAnInclusiveBoundaryAtEveryLimit(int maximumDrop) {
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(maximumDrop).apexClearance(2).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxDrop(maximumDrop)
+                        .apexClearance(2)
+                        .build();
 
         PathResult exact = jumpPath(islandsAtY(2, -maximumDrop),
                 new Pos(0.5, 1, 0.5), new Pos(2.5, 1 - maximumDrop, 0.5),
@@ -127,9 +147,12 @@ class PlatformJumpTest {
         Pos goal = new Pos(landingX + 0.5, 1, 0.5);
 
         PathResult chord = jumpPath(world, start, goal, NARROW,
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(landingX).maxRise(0).maxDrop(0).apexClearance(0).build());
+                PlatformJumpCapabilities.builder().maxHorizontalDistance(landingX).build());
         PathResult arc = jumpPath(world, start, goal, NARROW,
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(landingX).maxRise(0).maxDrop(0).apexClearance(1).build());
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(landingX)
+                        .apexClearance(1)
+                        .build());
 
         assertTrue(chord.found(),
                 () -> "the straight chord is clear of the obstacle: " + chord);
@@ -161,7 +184,11 @@ class PlatformJumpTest {
         TestWorld open = islandsAtY(2, rise);
         TestWorld roofed = islandsAtY(2, rise).set(ceilingX, ceilingY, 0, slab);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(rise).maxDrop(0).apexClearance(apex).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(rise)
+                        .apexClearance(apex)
+                        .build();
         Pos start = new Pos(0.5, 1, 0.5);
         Pos goal = new Pos(2.5, rise + 1, 0.5);
 
@@ -188,7 +215,10 @@ class PlatformJumpTest {
     @Test
     void steepArcsAreSampledDenselyEnoughToSeeAnObstacle() {
         PlatformJumpCapabilities steep =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(8).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(8)
+                        .build();
 
         assertTrue(jumpPath(islands(2), new Pos(0.5, 1, 0.5),
                 new Pos(2.5, 1, 0.5), NARROW, steep).found());
@@ -203,13 +233,19 @@ class PlatformJumpTest {
     void wideFootprintJumpsBetweenFullySupportedAnchors() {
         TestWorld world = wideIslands(3, 3, 3);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(5).maxRise(0).maxDrop(0).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(5)
+                        .apexClearance(1)
+                        .build();
 
         PathResult jumped = jumpPath(world, new Pos(1.0, 1, 1.0),
                 new Pos(7.0, 1, 1.0), WIDE, jump);
         PathResult tooShort = jumpPath(world, new Pos(1.0, 1, 1.0),
                 new Pos(7.0, 1, 1.0), WIDE,
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(1).build());
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .apexClearance(1)
+                        .build());
 
         PathNode landing = jumped.nodes().stream().filter(node ->
                         node.movement() == PathNode.Movement.JUMP)
@@ -233,7 +269,10 @@ class PlatformJumpTest {
         for (int x = 6; x < 9; x++) world.set(x, 0, 0, Block.AIR);
         for (int x = 6; x < 9; x++) world.set(x, 0, 2, Block.AIR);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(6).maxRise(0).maxDrop(0).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(6)
+                        .apexClearance(1)
+                        .build();
 
         PathResult result = jumpPath(world, new Pos(1.0, 1, 1.0),
                 new Pos(7.0, 1, 1.0), WIDE, jump);
@@ -255,7 +294,10 @@ class PlatformJumpTest {
             for (int x = 6; x < 9; x++) world.set(x, 0, z, Block.STONE);
         }
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(8).maxRise(0).maxDrop(0).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(8)
+                        .apexClearance(1)
+                        .build();
 
         PathResult result = jumpPath(world, new Pos(0.5, 1, 1.0),
                 new Pos(7.0, 1, 1.0), WIDE, jump);
@@ -278,7 +320,12 @@ class PlatformJumpTest {
         Block block = Block.fromState(support);
         assertNotNull(block, support);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(1).maxDrop(1).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(1)
+                        .maxDrop(1)
+                        .apexClearance(1)
+                        .build();
         TestWorld takeoff = new TestWorld()
                 .set(0, 0, 0, block).set(2, 0, 0, Block.STONE);
         TestWorld landing = new TestWorld()
@@ -302,12 +349,22 @@ class PlatformJumpTest {
 
         PathResult result = jumpPath(world, new Pos(0.5, 1, 0.5),
                 new Pos(8.5, 1, 0.5), NARROW,
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(6).maxRise(2).maxDrop(2).apexClearance(1).build());
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(6)
+                        .maxRise(2)
+                        .maxDrop(2)
+                        .apexClearance(1)
+                        .build());
 
         PathResult wide = jumpPath(
                 new TestWorld().floor(-2, 10, -2, 6, 0, Block.STONE),
                 new Pos(1.0, 1, 1.0), new Pos(8.0, 1, 1.0), WIDE,
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(6).maxRise(2).maxDrop(2).apexClearance(1).build());
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(6)
+                        .maxRise(2)
+                        .maxDrop(2)
+                        .apexClearance(1)
+                        .build());
 
         assertTrue(result.found(), result::toString);
         assertTrue(result.nodes().stream().noneMatch(node ->
@@ -350,7 +407,12 @@ class PlatformJumpTest {
             int obstacleX, int obstacleY) {
         TestWorld world = islandsAtY(landingX, rise)
                 .set(obstacleX, obstacleY, 0, Block.STONE);
-        PlatformJumpCapabilities jump = PlatformJumpCapabilities.builder().maxHorizontalDistance(landingX).maxRise(Math.max(0, rise)).maxDrop(Math.max(0, -rise)).apexClearance(apex).build();
+        PlatformJumpCapabilities jump = PlatformJumpCapabilities.builder()
+                .maxHorizontalDistance(landingX)
+                .maxRise(Math.max(0, rise))
+                .maxDrop(Math.max(0, -rise))
+                .apexClearance(apex)
+                .build();
         Pos start = new Pos(0.5, 1, 0.5);
         Pos goal = new Pos(landingX + 0.5, rise + 1, 0.5);
 
@@ -393,7 +455,10 @@ class PlatformJumpTest {
                 .set(2, 1, 0, block);
         if (island.equals("stone")) world.set(2, 2, 0, Block.STONE);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(apex).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .apexClearance(apex)
+                        .build();
 
         PathResult result = jumpPath(world, new Pos(0.5, 1, 0.5),
                 new Pos(4.5, 1, 0.5), NARROW, jump);
@@ -409,7 +474,11 @@ class PlatformJumpTest {
                 "the arc over the island must survive the swept test");
         assertFalse(jumpPath(world, new Pos(0.5, 1, 0.5),
                         new Pos(4.5, 1, 0.5), NARROW,
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(0.25).build()).found(),
+                        PlatformJumpCapabilities.builder()
+                                .maxHorizontalDistance(4)
+                                .apexClearance(0.25)
+                                .build())
+                                .found(),
                 "a flat arc must still be refused by the swept test");
     }
 
@@ -417,7 +486,10 @@ class PlatformJumpTest {
     void aSupportedWalkableIslandIsLandedOnRatherThanFlownOver() {
         TestWorld world = islands(4).set(2, 0, 0, Block.STONE);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .apexClearance(1)
+                        .build();
 
         PathResult result = jumpPath(world, new Pos(0.5, 1, 0.5),
                 new Pos(4.5, 1, 0.5), NARROW, jump);
@@ -438,9 +510,14 @@ class PlatformJumpTest {
         TestWorld world = islands(4).set(2, 0, 0, Block.STONE)
                 .set(2, 1, 0, Block.WATER);
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .apexClearance(1)
+                        .build();
 
-        PathResult avoidsWater = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(4.5, 1, 0.5), NARROW, MobTraversalProfile.ENDERMAN, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
+        PathResult avoidsWater = GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                new Pos(4.5, 1, 0.5), NARROW, MobTraversalProfile.ENDERMAN, 48, 8,
+                GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
         PathResult wadesWater = jumpPath(world, new Pos(0.5, 1, 0.5),
                 new Pos(4.5, 1, 0.5), NARROW, jump);
 
@@ -460,13 +537,19 @@ class PlatformJumpTest {
     @Test
     void capabilityRecordRejectsOutOfRangeAndNonFiniteValues() {
         assertThrows(IllegalArgumentException.class,
-                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(-1).maxRise(0).maxDrop(0).apexClearance(0).build());
+                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(-1).build());
         assertThrows(IllegalArgumentException.class,
-                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(33).maxRise(0).maxDrop(0).apexClearance(0).build());
+                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(33).build());
         assertThrows(IllegalArgumentException.class,
-                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(17).maxDrop(0).apexClearance(0).build());
+                () -> PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .maxRise(17)
+                        .build());
         assertThrows(IllegalArgumentException.class,
-                () -> PlatformJumpCapabilities.builder().maxHorizontalDistance(2).maxRise(0).maxDrop(0).apexClearance(Double.NaN).build());
+                () -> PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(2)
+                        .apexClearance(Double.NaN)
+                        .build());
         assertThrows(IllegalArgumentException.class,
                 () -> PlatformJumpCapabilities.acrossGaps(-1));
     }
@@ -499,7 +582,14 @@ class PlatformJumpTest {
         PlatformJumpCapabilities jump = PlatformJumpCapabilities.acrossGaps(2)
                 .withRise(1).withDrop(3).withApexClearance(2);
 
-        assertEquals(PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(1).maxDrop(3).apexClearance(2).build(), jump);
+        assertEquals(
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(3)
+                        .maxRise(1)
+                        .maxDrop(3)
+                        .apexClearance(2)
+                        .build(),
+                jump);
         assertTrue(jumpPath(islandsAtY(3, 1), new Pos(0.5, 1, 0.5),
                 new Pos(3.5, 2, 0.5), NARROW, jump).found());
         assertTrue(jumpPath(islandsAtY(3, -3), new Pos(0.5, 1, 0.5),
@@ -511,7 +601,8 @@ class PlatformJumpTest {
     private PathResult jumpPath(TestWorld world, Pos start, Pos goal,
                                 BoundingBox box,
                                 PlatformJumpCapabilities jump) {
-        return pathfinder.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, 48, 8,
+                GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
     }
 
     private static TestWorld islands(int landingX) {

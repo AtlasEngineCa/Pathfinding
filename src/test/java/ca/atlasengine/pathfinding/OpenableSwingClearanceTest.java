@@ -1,6 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
@@ -32,7 +38,6 @@ class OpenableSwingClearanceTest {
     private static final String[] FACINGS = {"north", "south", "east", "west"};
     private static final String[] HALVES = {"bottom", "top"};
     private final EntityPathfinder pathfinding = new EntityPathfinder();
-    private final TerrainClassifier classifier = new TerrainClassifier();
 
     /**
      * The corridor runs along +x, so a panel that swings across x walls it
@@ -243,7 +248,7 @@ class OpenableSwingClearanceTest {
 
     private TerrainType classify(TestWorld world, int x, int y, int z,
                                  BoundingBox box, MobTraversalProfile profile) {
-        return classifier.classifyAnchored(world, x, y, z, box, profile);
+        return TerrainClassifier.classifyAnchored(world, x, y, z, box, profile);
     }
 
     private static NavigationProfile navigation(MobTraversalProfile profile) {

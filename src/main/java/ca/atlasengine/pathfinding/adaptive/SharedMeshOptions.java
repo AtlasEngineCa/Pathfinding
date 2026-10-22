@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding.adaptive;
 
-import ca.atlasengine.pathfinding.NavigationSystem;import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.NavigationSystem;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
 /**
  * The explicit opt-in and policy for shared-mesh planning.
  *

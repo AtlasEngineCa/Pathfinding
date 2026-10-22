@@ -1,7 +1,11 @@
 package ca.atlasengine.pathfinding.search;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.internal.search.GroundNodePathfinder;
+import ca.atlasengine.pathfinding.internal.LoadedBlocks;
+import ca.atlasengine.pathfinding.internal.search.GroundNodePathfinder;
 import ca.atlasengine.pathfinding.internal.search.GroundSearchSpec;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.coordinate.Point;
@@ -9,7 +13,8 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 
 import java.util.List;
-import static ca.atlasengine.pathfinding.internal.Points.finite;
+
+import static ca.atlasengine.pathfinding.internal.Points.allFinite;
 
 /**
  * Dispatches an entity navigation request to the selected movement model.
@@ -28,27 +33,23 @@ public final class EntityPathfinder {
     public PathResult findPathToAny(
             NavigationRequest request, List<? extends Point> destinations,
             SearchControl control) {
-        if (destinations == null || destinations.isEmpty()
-                || destinations.stream().anyMatch(destination ->
-                destination == null || !finite(destination))) {
-            return PathResult.INVALID_REQUEST;
-        }
-        return switch (request.profile().mode()) {
+        if (!allFinite(destinations)) return PathResult.INVALID_REQUEST;
+        NavigationRequest loaded =
+                request.withBlocks(LoadedBlocks.view(request.blocks()));
+        PathResult result = switch (request.profile().mode()) {
             case WATER, FLYING ->
-                    spatial.findPathToAny(request, destinations, control);
+                    spatial.findPathToAny(loaded, destinations, control);
             case GROUND, WALL_CLIMBER, AMPHIBIOUS ->
-                    findGround(request, destinations, control);
+                    findGround(loaded, destinations, control);
         };
+        return LoadedBlocks.qualify(loaded.blocks(), result);
     }
-
 
     private PathResult findGround(
             NavigationRequest request, List<? extends Point> destinations,
             SearchControl control) {
         GroundCapabilities capabilities = request.profile().groundCapabilities();
-        int visited = (int) (Math.floor(
-                request.nodeSearchRange() * 16)
-                * request.maxVisitedMultiplier());
+        int visited = request.maxVisitedNodes();
         MobTraversalProfile mobProfile = snapshotRailState(request);
         if (request.profile().mode() == NavigationMode.AMPHIBIOUS) {
             GroundSearchSpec spec = GroundSearchSpec.amphibious(
@@ -113,11 +114,9 @@ public final class EntityPathfinder {
     private static MobTraversalProfile snapshotRailState(NavigationRequest request) {
         MobTraversalProfile profile = request.profile().mobProfile();
         if (profile.currentlyOnRail()) return profile;
-        Block at = request.blocks().getBlock(
-                request.start(), Block.Getter.Condition.TYPE);
-        Block below = request.blocks().getBlock(
-                request.start().add(0, -1, 0), Block.Getter.Condition.TYPE);
-        if (!BlockTraversalData.isRail(at) && !BlockTraversalData.isRail(below)) return profile;
+        if (!BlockTraversalData.isRailAt(request.blocks(), request.start())) {
+            return profile;
+        }
         return MobTraversalProfile.builder(profile.name() + "_on_rail")
                 .from(profile)
                 .currentlyOnRail(true)

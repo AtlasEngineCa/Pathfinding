@@ -1,12 +1,24 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
+import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -16,9 +28,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -202,7 +214,7 @@ class AdaptiveMeshParityContractTest {
                     assertTrue(NavigationPlanParity.requestCompatible(
                             request, fixture.plan), fixture.name);
                     return CompletableFuture.completedFuture(fixture.plan);
-                }, config);
+                }, config, new NavigationMetrics());
         NavigationRequest request = NavigationRequest.builder(
                         new TestWorld(), fixture.plan.start(),
                         fixture.plan.target(), BOX, fixture.plan.profile())
@@ -241,7 +253,9 @@ class AdaptiveMeshParityContractTest {
                                     pathfinder.findPath(
                                             submitted, SearchControl.NONE)));
                 }, SharedMeshPolicy.builder()
-                        .promotionRequests(2).retentionRequests(1).build());
+                        .promotionRequests(2)
+                                .retentionRequests(1)
+                                .build(), new NavigationMetrics());
         NavigationPlan first = coordinator.request(
                 "seed-1", "target", 9, 0, request).plan().join();
         NavigationPlan second = coordinator.request(
@@ -379,7 +393,7 @@ class AdaptiveMeshParityContractTest {
                 nodes.getLast().y(), 0.5);
         return new Fixture(name, new NavigationPlan(
                 start, target, BOX, profile, PathStatus.FOUND,
-                nodes, nodes.size(), nodes.size() * 8));
+                nodes, nodes.size(), nodes.size() * 8, List.of()));
     }
 
     private static NavigationProfile profile(EntityType type) {
@@ -388,14 +402,19 @@ class AdaptiveMeshParityContractTest {
 
     private static NavigationProfile climbingProfile() {
         NavigationProfile base = profile(EntityType.ZOMBIE);
-        return NavigationProfile.builder(base.mode(), base.mobProfile(), base.groundCapabilities().withClimbables(
-                        ClimbableCapabilities.STANDARD)).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+        return base.withGroundCapabilities(base.groundCapabilities()
+                .withClimbables(ClimbableCapabilities.STANDARD));
     }
 
     private static NavigationProfile jumpingProfile() {
         NavigationProfile base = profile(EntityType.ZOMBIE);
-        return NavigationProfile.builder(base.mode(), base.mobProfile(), base.groundCapabilities().withPlatformJump(
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(1).maxDrop(1).apexClearance(1).build())).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+        return base.withGroundCapabilities(base.groundCapabilities()
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(3)
+                        .maxRise(1)
+                        .maxDrop(1)
+                        .apexClearance(1)
+                        .build()));
     }
 
     private static NavigationPlan copy(
@@ -403,7 +422,7 @@ class AdaptiveMeshParityContractTest {
         return new NavigationPlan(
                 source.start(), source.target(), source.boundingBox(),
                 source.profile(), source.status(), nodes,
-                source.visitedNodes(), source.examinedNeighbors());
+                source.visitedNodes(), source.examinedNeighbors(), List.of());
     }
 
     private record Fixture(String name, NavigationPlan plan) {

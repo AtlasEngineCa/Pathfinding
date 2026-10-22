@@ -1,12 +1,15 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.internal.movement.MovementContext;
+import ca.atlasengine.pathfinding.internal.movement.MovementContext;
 import ca.atlasengine.pathfinding.internal.movement.PlatformJumpMovementExecutor;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
 import net.minestom.server.collision.BoundingBox;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityCreature;
@@ -47,7 +50,7 @@ class PlatformJumpDoorE2ETest {
             ControlledCreature mob = spawn(instance,
                     new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             openingJumper(), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(8.5, SURFACE, 0.5));
@@ -85,8 +88,8 @@ class PlatformJumpDoorE2ETest {
             boolean opens, Env env) {
         Instance instance = lane(env);
         instance.setBlock(4, SURFACE, 0, CLOSED_GATE);
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(1.5, SURFACE, 0.5)).join();
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(1.5, SURFACE, 0.5));
         RecordingContext context = new RecordingContext(mob, opens,
                 new PathNode(1.5, SURFACE, 0.5, PathNode.Movement.WALK,
                         1, SURFACE, 0),
@@ -132,7 +135,7 @@ class PlatformJumpDoorE2ETest {
             ControlledCreature mob = spawn(instance,
                     new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             closingJumper(), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(8.5, SURFACE, 0.5));
@@ -185,9 +188,7 @@ class PlatformJumpDoorE2ETest {
 
     /** A one-cell lane walled in z, cut by a gap the mob has to jump. */
     private static Instance lane(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         for (int y = SURFACE; y <= SURFACE + 3; y++) {
             for (int x = -3; x <= 13; x++) {
                 instance.setBlock(x, y, -1, Block.STONE);

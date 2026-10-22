@@ -1,8 +1,8 @@
 package ca.atlasengine.pathfinding.internal.search;
 
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.search.EntityTraversalState;
 import ca.atlasengine.pathfinding.search.SearchControl;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.terrain.BlockTagIndex;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;

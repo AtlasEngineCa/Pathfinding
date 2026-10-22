@@ -76,20 +76,27 @@ public final class GroundCapabilities {
     }
 
     public GroundCapabilities withHorizontalEdgeCost(boolean value) {
-        return new GroundCapabilities(maxStepHeight, maxFallDistance,
-                allowDiagonal, value, platformJump, climbables);
+        return toBuilder().horizontalEdgeCost(value).build();
     }
 
     public GroundCapabilities withPlatformJump(
             PlatformJumpCapabilities jump) {
-        return new GroundCapabilities(maxStepHeight, maxFallDistance,
-                allowDiagonal, horizontalEdgeCost, jump, climbables);
+        return toBuilder().platformJump(jump).build();
     }
 
     public GroundCapabilities withClimbables(
             ClimbableCapabilities capabilities) {
-        return new GroundCapabilities(maxStepHeight, maxFallDistance,
-                allowDiagonal, horizontalEdgeCost, platformJump, capabilities);
+        return toBuilder().climbables(capabilities).build();
+    }
+
+    private Builder toBuilder() {
+        return builder()
+                .maxStepHeight(maxStepHeight)
+                .maxFallDistance(maxFallDistance)
+                .allowDiagonal(allowDiagonal)
+                .horizontalEdgeCost(horizontalEdgeCost)
+                .platformJump(platformJump)
+                .climbables(climbables);
     }
 
     @Override

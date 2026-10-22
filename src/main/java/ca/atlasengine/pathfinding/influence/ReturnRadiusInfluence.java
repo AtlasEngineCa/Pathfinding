@@ -4,6 +4,7 @@ import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
+
 import static ca.atlasengine.pathfinding.internal.Points.finite;
 
 /**
@@ -25,7 +26,6 @@ public record ReturnRadiusInfluence(
         requestStart = new Vec(
                 requestStart.x(), requestStart.y(), requestStart.z());
     }
-
 
     @Override
     public InfluenceResult evaluate(

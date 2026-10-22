@@ -1,13 +1,15 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,7 +32,7 @@ final class AdaptiveMeshTestSupport {
                      }, SharedMeshPolicy.builder()
                              .promotionRequests(2)
                              .retentionRequests(1)
-                             .build())) {
+                             .build(), new NavigationMetrics())) {
             NavigationPlan first = coordinator.request(
                     "seed-1", "target", 1, 0, request).plan().join();
             NavigationPlan second = coordinator.request(

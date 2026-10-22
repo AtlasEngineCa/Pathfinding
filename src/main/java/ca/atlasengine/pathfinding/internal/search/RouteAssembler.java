@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.search;
 
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.result.PathStatus;
@@ -48,8 +49,8 @@ final class RouteAssembler {
     /** Graph cells to movement waypoints, goal-first. */
     private List<PathNode> project(SearchNode end) {
         List<PathNode> waypoints = new ArrayList<>();
-        double halfWidth = GroundNodeEvaluator.footprintWidth(box) * 0.5;
-        double halfDepth = GroundNodeEvaluator.footprintDepth(box) * 0.5;
+        double halfWidth = Footprint.width(box) * 0.5;
+        double halfDepth = Footprint.depth(box) * 0.5;
         for (SearchNode cursor = end; cursor != null; cursor = cursor.previous) {
             waypoints.add(new PathNode(
                     climb.waypointX(cursor.x, cursor.y, cursor.z, halfWidth),

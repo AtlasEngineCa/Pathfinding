@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding.metrics;
 
-import ca.atlasengine.pathfinding.NavigationState;import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.NavigationState;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;

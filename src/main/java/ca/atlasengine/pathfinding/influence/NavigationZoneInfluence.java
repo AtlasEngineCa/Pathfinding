@@ -4,6 +4,7 @@ import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
+
 import static ca.atlasengine.pathfinding.internal.Points.finite;
 
 /**
@@ -34,7 +35,6 @@ public record NavigationZoneInfluence(
         minimum = new Vec(minimum.x(), minimum.y(), minimum.z());
         maximum = new Vec(maximum.x(), maximum.y(), maximum.z());
     }
-
 
     /**
      * A zone covering whole block cells, inclusive of both named corners in any

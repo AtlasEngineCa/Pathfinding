@@ -2,6 +2,7 @@ package ca.atlasengine.pathfinding.adaptive;
 
 import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import net.minestom.server.collision.BoundingBox;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +11,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minestom.server.collision.BoundingBox;
 
 /**
  * Immutable directed mesh of collision-validated route segments.

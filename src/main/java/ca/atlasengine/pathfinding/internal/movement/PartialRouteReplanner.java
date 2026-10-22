@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
+import ca.atlasengine.pathfinding.internal.RouteLength;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.result.PathStop;
@@ -44,20 +45,6 @@ public final class PartialRouteReplanner {
     public void widen() {
         searchRangeMultiplier = Math.min(MAX_SEARCH_RANGE_MULTIPLIER,
                 searchRangeMultiplier * 2);
-    }
-
-    /**
-     * Chains bounded partial searches for long routes. A nearby
-     * unreachable target remains terminal, and an identical partial endpoint
-     * is never submitted twice, preventing autonomous retry loops.
-     *
-     * <p>For a route whose search reason is not recorded, such as one replayed
-     * from a cached plan.</p>
-     */
-    public Continuation continueLongPartialRoute(
-            Point position, Point target, List<PathNode> nodes) {
-        return continueLongPartialRoute(
-                position, target, nodes, PathStop.NOT_SEARCHED);
     }
 
     /**
@@ -117,16 +104,7 @@ public final class PartialRouteReplanner {
     private static boolean budgetBound(
             PathStop stop, List<PathNode> nodes, double remaining) {
         return stop == PathStop.FRONTIER_TRUNCATED
-                && walkedLength(nodes) > remaining;
-    }
-
-    private static double walkedLength(List<PathNode> nodes) {
-        double walked = 0;
-        for (int index = 1; index < nodes.size(); index++) {
-            walked += nodes.get(index - 1).asVec()
-                    .distance(nodes.get(index).asVec());
-        }
-        return walked;
+                && RouteLength.of(nodes) > remaining;
     }
 
     public boolean shouldExpandVerticalDetour(PathResult path, Point target) {

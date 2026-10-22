@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding.adaptive;
 
 import ca.atlasengine.pathfinding.NavigationPlan;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 

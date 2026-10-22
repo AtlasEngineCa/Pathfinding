@@ -1,6 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -13,11 +17,12 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @EnvTest
 class ModularControllerE2ETest {
@@ -46,7 +51,7 @@ class ModularControllerE2ETest {
                     instance, EntityType.COD,
                     new Pos(0.5, 40.5, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(cod, service, 0.18);
+                    TestWorlds.builtinController(cod, service, 0.18);
             cod.controller = controller;
             controller.moveTo(new Pos(6.5, 40.5, 0.5));
 
@@ -92,7 +97,7 @@ class ModularControllerE2ETest {
             ControlledCreature cod = spawn(
                     instance, EntityType.COD, new Pos(0.5, 40.5, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(cod, service, 0.2);
+                    TestWorlds.builtinController(cod, service, 0.2);
             cod.controller = controller;
             Pos goal = new Pos(6.5, 43.5, 0.5);
             NavigationProfile profile = BuiltinNavigationProfiles
@@ -101,7 +106,7 @@ class ModularControllerE2ETest {
                     instance, cod.getPosition(), goal, cod.getBoundingBox(),
                     profile, 16, 1, 1, List.of(), 63,
                     new EntityTraversalState(
-                            false, true, java.util.Set.of(), -64, 319,
+                            false, true, Set.of(), -64, 319,
                             List.of()),
                     16);
             controller.follow(AdaptiveMeshTestSupport.promoteAndReplay(
@@ -142,7 +147,7 @@ class ModularControllerE2ETest {
             ControlledCreature bee = spawn(
                     instance, EntityType.BEE, new Pos(0.5, 43.5, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(bee, service, 0.2);
+                    TestWorlds.builtinController(bee, service, 0.2);
             bee.controller = controller;
             Pos goal = new Pos(6.5, 43.5, 0.5);
             NavigationProfile profile = BuiltinNavigationProfiles
@@ -188,7 +193,7 @@ class ModularControllerE2ETest {
             ControlledCreature bee = spawn(instance, EntityType.BEE,
                     new Pos(0.5, 43.5, 0.5), new UUID(0, 1));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(bee, service, 0.2);
+                    TestWorlds.builtinController(bee, service, 0.2);
             bee.controller = controller;
             controller.moveTo(new Pos(4.5, 43.5, 0.5));
 
@@ -227,7 +232,7 @@ class ModularControllerE2ETest {
             ControlledCreature axolotl = spawn(
                     instance, EntityType.AXOLOTL, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(axolotl, service, 0.16);
+                    TestWorlds.builtinController(axolotl, service, 0.16);
             axolotl.controller = controller;
             Pos goal = new Pos(8.5, 40, 0.5);
             NavigationProfile profile = BuiltinNavigationProfiles
@@ -264,9 +269,7 @@ class ModularControllerE2ETest {
     }
 
     private static Instance prepared(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

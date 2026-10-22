@@ -1,6 +1,9 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
@@ -16,8 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class MobProfileRoutingTest {
     private static final BoundingBox MOB = new BoundingBox(0.6, 1.8, 0.6);
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     /** A fire cell is forbidden to an animal and merely expensive to a warden. */
     @Test
@@ -107,8 +108,12 @@ class MobProfileRoutingTest {
         assertEquals(-1, MobTraversalProfile.ENDERMAN.malus(TerrainType.WATER));
         assertTrue(MobTraversalProfile.ENDERMAN.canFloat());
 
-        PathResult fromDryLand = pathfinder.findPath(floodedLane(), new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, MobTraversalProfile.ENDERMAN, GroundSearchLimits.builder().maxPathLength(20).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
-        PathResult fromInsideWater = pathfinder.findPath(floodedLane(), new Pos(1.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, MobTraversalProfile.ENDERMAN, GroundSearchLimits.builder().maxPathLength(20).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult fromDryLand = GroundSearches.find(floodedLane(), new Pos(0.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), MOB, MobTraversalProfile.ENDERMAN, 20, 8,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult fromInsideWater = GroundSearches.find(floodedLane(), new Pos(1.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), MOB, MobTraversalProfile.ENDERMAN, 20, 8,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
 
         assertTrue(fromDryLand.found(), fromDryLand::toString);
         assertTrue(fromDryLand.nodes().stream().noneMatch(node ->
@@ -129,7 +134,8 @@ class MobProfileRoutingTest {
     }
 
     private PathResult lane(TestWorld world, MobTraversalProfile profile) {
-        return pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, profile, GroundSearchLimits.builder().maxPathLength(20).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, profile,
+                20, 8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static TestWorld lane() {

@@ -82,7 +82,13 @@ current route until the replacement lands, so a chased target never stands
 still.
 
 `controller.state()` reports progress: `COMPLETED` arrived, `PARTIAL` ran out
-short of the goal, `STUCK` cannot walk the route it has.
+short of the goal, `STUCK` cannot walk the route it has. Chunks that are not
+loaded count as solid, so a mob heading into them stops at the edge with
+`controller.routeStop() == PathStop.TERRAIN_UNLOADED`; call `moveTo` again once
+they load.
+
+Need a fixed profile, another speed, or direct movement? Use
+`navigation.controllerBuilder(mob)`.
 
 That is the whole everyday API; see the [wiki](https://github.com/AtlasEngineCa/Pathfinding/wiki).
 

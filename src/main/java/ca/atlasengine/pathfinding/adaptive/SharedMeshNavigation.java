@@ -1,11 +1,11 @@
 package ca.atlasengine.pathfinding.adaptive;
 
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;
 import ca.atlasengine.pathfinding.NavigationStrategy;
 import ca.atlasengine.pathfinding.NavigationSystem;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.instance.block.Block;
 

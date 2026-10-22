@@ -1,12 +1,13 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.influence.InfluenceResult;
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.profile.GroundCapabilities;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
 import ca.atlasengine.pathfinding.search.SearchControl;
-import ca.atlasengine.pathfinding.influence.InfluenceResult;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
@@ -62,7 +63,6 @@ class GroundNodeEvaluator extends NodeEvaluator {
     final int minY;
     final int maxY;
 
-    private final TerrainClassifier classifier = new TerrainClassifier();
     private final CoordinateNodeMap nodes = new CoordinateNodeMap();
     private final List<SearchNode> neighbors = new ArrayList<>(16);
     private final SearchNode[] cardinalNeighbors =
@@ -307,8 +307,8 @@ class GroundNodeEvaluator extends NodeEvaluator {
         if (malus >= 0 && !influences.isEmpty()) {
             boolean influenceBlocked = false;
             Point projected = new Vec(
-                    x + footprintWidth(box) * 0.5, floorLevel(x, y, z),
-                    z + footprintDepth(box) * 0.5);
+                    x + Footprint.width(box) * 0.5, floorLevel(x, y, z),
+                    z + Footprint.depth(box) * 0.5);
             for (NavigationInfluence influence : influences) {
                 InfluenceResult result = influence.evaluate(
                         blocks, projected, box, control);
@@ -344,12 +344,12 @@ class GroundNodeEvaluator extends NodeEvaluator {
                 || y + box.relativeEnd().y() > maxY + 1.0) {
             return TerrainType.BLOCKED;
         }
-        return classifier.classifyAnchored(
+        return TerrainClassifier.classifyAnchored(
                 blocks, x, y, z, box, profile, control);
     }
 
     TerrainType classifyAmphibious(int x, int y, int z) {
-        return classifier.classifyAnchoredAmphibious(
+        return TerrainClassifier.classifyAnchoredAmphibious(
                 blocks, x, y, z, box, profile, control);
     }
 
@@ -364,8 +364,8 @@ class GroundNodeEvaluator extends NodeEvaluator {
     /** Highest supporting surface anywhere under the complete graph footprint. */
     double footprintFloorLevel(int x, int y, int z) {
         double highest = Double.NEGATIVE_INFINITY;
-        int width = footprintWidth(box);
-        int depth = footprintDepth(box);
+        int width = Footprint.width(box);
+        int depth = Footprint.depth(box);
         for (int offsetX = 0; offsetX < width; offsetX++) {
             for (int offsetZ = 0; offsetZ < depth; offsetZ++) {
                 highest = Math.max(highest,
@@ -398,21 +398,13 @@ class GroundNodeEvaluator extends NodeEvaluator {
     }
 
     boolean interrupted() {
-        return control.cancelled() || control.timedOut();
+        return control.interrupted();
     }
 
     @Override
     PathResult result(PathStatus status, SearchNode end,
                       int visited, int examined) {
         return routes.assemble(status, end, visited, examined);
-    }
-
-    static int footprintWidth(BoundingBox box) {
-        return Math.max(1, (int) Math.floor(box.width() + 1));
-    }
-
-    static int footprintDepth(BoundingBox box) {
-        return Math.max(1, (int) Math.floor(box.depth() + 1));
     }
 
     private static double distance(SearchNode a, SearchNode b) {

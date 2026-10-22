@@ -1,12 +1,21 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,14 +80,16 @@ class FloatingGroundNavigationTest {
                 .canFloat(true)
                 .build();
 
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, floating, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, floating,
+                GroundCapabilities.STANDARD).build();
         PathResult result = pathfinder.findPath(
                 NavigationRequest.builder(
                                 world, new Pos(0.5, 0.2, 0.5),
                                 new Pos(2.5, 1, 0.5), MOB, profile)
                         .maxPathLength(12)
                         .entityState(new EntityTraversalState(
-                                false, true, Set.of(), -64))
+                                false, true, Set.of(), -64,
+                                EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT, List.of()))
                         .build(),
                 SearchControl.NONE);
 
@@ -105,13 +116,15 @@ class FloatingGroundNavigationTest {
 
     private PathResult find(TestWorld world, MobTraversalProfile profile,
                             Pos start, Pos goal) {
-        NavigationProfile navigation = NavigationProfile.builder(NavigationMode.GROUND, profile, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile navigation = NavigationProfile.builder(NavigationMode.GROUND, profile,
+                GroundCapabilities.STANDARD).build();
         return pathfinder.findPath(NavigationRequest.builder(
                                 world, start, goal, MOB, navigation)
                         .maxPathLength(32)
                         .maxVisitedMultiplier(8)
                         .entityState(new EntityTraversalState(
-                                false, true, Set.of(), -64))
+                                false, true, Set.of(), -64,
+                                EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT, List.of()))
                         .build(),
                 SearchControl.NONE);
     }

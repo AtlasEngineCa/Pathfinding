@@ -23,9 +23,8 @@ public enum NavigationStrategy {
      * <p>This is a preference over the dispatch decision, never over the
      * parity gate: it cannot make a shared plan appear. A shared plan is
      * served only when the region is already promoted and holds a certified
-     * ordinary-A* plan for this exact source and destination class that still
-     * passes {@link
-     * ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity}. A missing
+     * ordinary-A* plan for this exact source and destination class that the
+     * shared composition still reproduces waypoint for waypoint. A missing
      * certificate, a failed parity check, a moved source, an exhausted region,
      * or a disabled mesh silently runs the ordinary search instead. There is
      * no mode that serves an uncertified shared plan.</p>

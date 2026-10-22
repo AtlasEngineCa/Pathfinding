@@ -1,14 +1,15 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.influence.InfluenceResult;
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.search.SearchControl;
-import ca.atlasengine.pathfinding.influence.InfluenceResult;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
-import ca.atlasengine.pathfinding.terrain.TerrainType;
+import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 
@@ -123,12 +124,10 @@ public abstract class SpatialNodeEvaluator extends NodeEvaluator {
     }
 
     static Point movementPoint(NavigationRequest request, Point graphPoint) {
-        int width = Math.max(1,
-                (int) Math.floor(request.boundingBox().width() + 1));
-        int depth = Math.max(1,
-                (int) Math.floor(request.boundingBox().depth() + 1));
-        return new Vec(graphPoint.blockX() + width * 0.5,
-                graphPoint.blockY(), graphPoint.blockZ() + depth * 0.5);
+        BoundingBox box = request.boundingBox();
+        return new Vec(graphPoint.blockX() + Footprint.width(box) * 0.5,
+                graphPoint.blockY(),
+                graphPoint.blockZ() + Footprint.depth(box) * 0.5);
     }
 
     private static float distance(SearchNode a, SearchNode b) {

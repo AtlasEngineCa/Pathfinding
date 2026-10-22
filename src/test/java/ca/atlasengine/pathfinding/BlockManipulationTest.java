@@ -1,6 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
@@ -36,7 +42,6 @@ class BlockManipulationTest {
             .withProperty("hinge", "left")
             .withProperty("half", "lower")
             .withProperty("open", "false");
-    private final TerrainClassifier classifier = new TerrainClassifier();
 
     @Test
     void capabilityConstantsMatchTheBuiltinDoorContract() {
@@ -234,12 +239,13 @@ class BlockManipulationTest {
 
     private static PathResult cross(TestWorld world,
                                     MobTraversalProfile profile) {
-        return new DiscreteGroundPathfinder().findPath(world, new Vec(-0.5, 1, 0.5), new Vec(3.5, 1, 0.5), CELL, profile, GroundSearchLimits.builder().maxPathLength(16).reachRange(0).maxVisitedMultiplier(4).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, new Vec(-0.5, 1, 0.5), new Vec(3.5, 1, 0.5), CELL,
+                profile, 16, 4, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private TerrainType classify(TestWorld world, int x,
                                  MobTraversalProfile profile) {
-        return classifier.classifyAnchored(world, x, 1, 0, CELL, profile);
+        return TerrainClassifier.classifyAnchored(world, x, 1, 0, CELL, profile);
     }
 
     private static Block block(Block.Getter blocks, int x) {

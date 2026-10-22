@@ -1,19 +1,19 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;
-import ca.atlasengine.pathfinding.profile.NavigationMode;
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
-import ca.atlasengine.pathfinding.result.PathNode;
-import ca.atlasengine.pathfinding.result.PathResult;
-import ca.atlasengine.pathfinding.result.PathStatus;
-import ca.atlasengine.pathfinding.search.SearchControl;
-import ca.atlasengine.pathfinding.search.SpatialPathfinder;
 import ca.atlasengine.pathfinding.TestWorld;
 import ca.atlasengine.pathfinding.influence.InfluenceResult;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.search.SpatialPathfinder;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -22,8 +22,8 @@ import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -377,7 +377,7 @@ class SpatialPathfinderTest {
                         SMALL, flyingProfile())
                 .maxPathLength(12)
                 .build();
-        FlyNodeEvaluator evaluator = new FlyNodeEvaluator(request);
+        FlyNodeEvaluator evaluator = new FlyNodeEvaluator(request, SearchControl.NONE);
         Vec floorAdjacent = new Vec(0, 1, 0);
 
         assertEquals(1, evaluator.malusAt(floorAdjacent));
@@ -393,13 +393,16 @@ class SpatialPathfinderTest {
         MobTraversalProfile swimmer = MobTraversalProfile.builder("breacher")
                 .malus(TerrainType.BREACH, 0)
                 .build();
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.WATER, swimmer, GroundCapabilities.STANDARD).allowBreaching(true).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.WATER, swimmer,
+                GroundCapabilities.STANDARD)
+                .allowBreaching(true)
+                .build();
         NavigationRequest request = NavigationRequest.builder(
                         world, new Vec(0.5, 0.5, 0.5), new Vec(0.5, 1.5, 0.5),
                         SMALL, profile)
                 .maxPathLength(8)
                 .build();
-        SwimNodeEvaluator evaluator = new SwimNodeEvaluator(request);
+        SwimNodeEvaluator evaluator = new SwimNodeEvaluator(request, SearchControl.NONE);
         Vec breach = new Vec(0, 1, 0);
 
         assertEquals(8, evaluator.malusAt(breach));
@@ -415,14 +418,17 @@ class SpatialPathfinderTest {
         MobTraversalProfile swimmer = MobTraversalProfile.builder("wide_breacher")
                 .malus(TerrainType.BREACH, 0)
                 .build();
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.WATER, swimmer, GroundCapabilities.STANDARD).allowBreaching(true).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.WATER, swimmer,
+                GroundCapabilities.STANDARD)
+                .allowBreaching(true)
+                .build();
         BoundingBox wide = new BoundingBox(1.01, 0.5, 1.01);
         NavigationRequest request = NavigationRequest.builder(
                         world, new Vec(0.5, 0.5, 0.5), new Vec(1.5, 1.5, 0.5),
                         wide, profile)
                 .maxPathLength(8)
                 .build();
-        SwimNodeEvaluator evaluator = new SwimNodeEvaluator(request);
+        SwimNodeEvaluator evaluator = new SwimNodeEvaluator(request, SearchControl.NONE);
 
         assertEquals(0, evaluator.malusAt(new Vec(0, 0, 0)),
                 "a later dry cell makes the volume BREACH, but the water "
@@ -439,11 +445,15 @@ class SpatialPathfinderTest {
     }
 
     private static NavigationProfile waterProfile(boolean breach) {
-        return NavigationProfile.builder(NavigationMode.WATER, MobTraversalProfile.WATER_ANIMAL, GroundCapabilities.STANDARD).allowBreaching(breach).prefersShallowWater(false).avoidSun(false).build();
+        return NavigationProfile.builder(NavigationMode.WATER, MobTraversalProfile.WATER_ANIMAL,
+                GroundCapabilities.STANDARD)
+                .allowBreaching(breach)
+                .build();
     }
 
     private static NavigationProfile flyingProfile() {
-        return NavigationProfile.builder(NavigationMode.FLYING, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        return NavigationProfile.builder(NavigationMode.FLYING, MobTraversalProfile.DEFAULT,
+                GroundCapabilities.STANDARD).build();
     }
 
     private static TestWorld waterBox(int minX, int maxX, int minY, int maxY,

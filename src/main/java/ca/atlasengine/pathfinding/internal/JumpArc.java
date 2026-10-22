@@ -5,10 +5,7 @@ import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.collision.PhysicsResult;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
-import net.minestom.server.instance.Chunk;
-import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
-import net.minestom.server.utils.chunk.ChunkCache;
 
 import java.util.function.BooleanSupplier;
 
@@ -111,18 +108,6 @@ public final class JumpArc {
     }
 
     /**
-     * Live counterpart reading through a chunk cache, so an arc leaving the
-     * loaded area is refused rather than throwing.
-     */
-    public static boolean clear(Instance instance, Chunk chunk,
-                                BoundingBox box, Point from, Point to,
-                                double apexClearance) {
-        return clear(new ChunkCache(instance, chunk != null
-                        ? chunk : instance.getChunkAt(from), Block.STONE),
-                box, from, to, apexClearance, null);
-    }
-
-    /**
      * Point-sampling the arc lets the box step diagonally past a block corner
      * between two samples, so a swept test is the only one the follower and
      * the planner can both pass.
@@ -136,7 +121,7 @@ public final class JumpArc {
         // A sweep discards whatever the box already overlaps when it starts,
         // and the grown box reaches above the standing one, so the takeoff
         // is the one position no sweep along the arc can judge.
-        if (occupied(blocks, grown, from)) return false;
+        if (BoxCollision.intersects(blocks, grown, from)) return false;
         int samples = samples(from, to);
         Point previous = from;
         for (int sample = 1; sample <= samples; sample++) {
@@ -154,21 +139,5 @@ public final class JumpArc {
             previous = next;
         }
         return true;
-    }
-
-    private static boolean occupied(Block.Getter blocks, BoundingBox box,
-                                    Point position) {
-        var cells = box.getBlocks(position);
-        while (cells.hasNext()) {
-            var cell = cells.next();
-            Vec corner = new Vec(
-                    cell.blockX(), cell.blockY(), cell.blockZ());
-            if (blocks.getBlock(cell.blockX(), cell.blockY(), cell.blockZ())
-                    .collisionShape()
-                    .intersectBox(position.sub(corner), box)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

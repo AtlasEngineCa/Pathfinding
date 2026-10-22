@@ -1,7 +1,10 @@
 package ca.atlasengine.pathfinding.metrics;
 
 import ca.atlasengine.pathfinding.NavigationState;
-import ca.atlasengine.pathfinding.metrics.LatencyDistribution;import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.metrics.LatencyDistribution;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;

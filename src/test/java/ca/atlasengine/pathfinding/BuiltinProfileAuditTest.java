@@ -1,10 +1,13 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.terrain.BuiltinMobProfiles;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.terrain.BuiltinMobProfiles;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
-import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.EntityCreature;
+import net.minestom.server.entity.EntityType;
 import net.minestom.server.entity.metadata.AgeableMobMeta;
 import org.junit.jupiter.api.Test;
 
@@ -101,7 +104,8 @@ class BuiltinProfileAuditTest {
         assertProfile(MobTraversalProfile.ANIMAL, EntityType.HOGLIN);
         assertProfile(MobTraversalProfile.CAMEL, EntityType.CAMEL, EntityType.CAMEL_HUSK);
         assertProfile(MobTraversalProfile.PIGLIN, EntityType.PIGLIN, EntityType.PIGLIN_BRUTE);
-        assertProfile(MobTraversalProfile.NAUTILUS, EntityType.NAUTILUS, EntityType.ZOMBIE_NAUTILUS);
+        assertProfile(MobTraversalProfile.NAUTILUS, EntityType.NAUTILUS,
+                EntityType.ZOMBIE_NAUTILUS);
         assertProfile(MobTraversalProfile.FLOATING_DEFAULT,
                 EntityType.SLIME, EntityType.MAGMA_CUBE, EntityType.SULFUR_CUBE,
                 EntityType.SPIDER, EntityType.CAVE_SPIDER, EntityType.CREEPER);

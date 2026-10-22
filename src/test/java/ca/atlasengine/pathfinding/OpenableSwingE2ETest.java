@@ -1,9 +1,9 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
 import net.minestom.server.collision.BoundingBox;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -124,7 +124,7 @@ class OpenableSwingE2ETest {
         mob.setBoundingBox(width, 1.95, width);
         mob.setInstance(instance, new Pos(0.5, SURFACE, 0.5)).join();
         EntityNavigationController controller =
-                EntityNavigationController.builtin(mob, service, 0.18);
+                TestWorlds.builtinController(mob, service, 0.18);
         mob.controller = controller;
         controller.moveTo(new Pos(4.5, SURFACE, 0.5),
                 NavigationModifiers.builder()
@@ -181,9 +181,7 @@ class OpenableSwingE2ETest {
 
     /** Sealed one-wide corridor: a refused cell has no detour around it. */
     private static Instance corridor(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         for (int x = -1; x <= 6; x++) {
             for (int y = SURFACE; y <= SURFACE + 2; y++) {
                 instance.setBlock(x, y, -1, Block.STONE);

@@ -1,6 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.block.Block;
@@ -42,9 +46,10 @@ class HardMapOptimalityTest {
             double expected = dijkstra(walls, start, goal, volume);
             assertTrue(Double.isFinite(expected), "oracle fixture has no route");
 
-            PathResult result = new DiscreteGroundPathfinder().findPath(world, new Pos(start.x + volume * 0.5, 1,
+            PathResult result = GroundSearches.find(world, new Pos(start.x + volume * 0.5, 1,
                             start.z + volume * 0.5), new Pos(goal.x + volume * 0.5, 1,
-                            goal.z + volume * 0.5), box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(160).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+                            goal.z + volume * 0.5), box, MobTraversalProfile.DEFAULT, 160, 8,
+                            GroundCapabilities.STANDARD, SearchControl.NONE);
 
             assertTrue(result.found(),
                     () -> "width=" + width + ", nodes=" + result.nodes());

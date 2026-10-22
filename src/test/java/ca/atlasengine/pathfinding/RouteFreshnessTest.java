@@ -1,17 +1,19 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
-import ca.atlasengine.pathfinding.internal.movement.RouteSplicer;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.metrics.SpliceCounts;
+import ca.atlasengine.pathfinding.result.PathNode;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
+import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
-import net.minestom.server.coordinate.Vec;
 import net.minestom.testing.Env;
 import net.minestom.testing.EnvTest;
 import org.junit.jupiter.api.Test;
@@ -123,8 +125,8 @@ class RouteFreshnessTest {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
         obstruct(instance);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -157,7 +159,7 @@ class RouteFreshnessTest {
                 }
                 env.tick();
             }
-            RouteSplicer.Counts splices = controller.spliceCounts();
+            SpliceCounts splices = controller.spliceCounts();
             assertTrue(splices.joined() > 0,
                     () -> "no route was spliced, so nothing was proved: "
                             + splices);
@@ -187,8 +189,8 @@ class RouteFreshnessTest {
     void aReversingTargetRefusesSplicesAndStillKeepsRoutes(Env env) {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -219,7 +221,7 @@ class RouteFreshnessTest {
                 if (state == NavigationState.FOLLOWING
                         || state == NavigationState.PARTIAL) ticksWithRoute++;
             }
-            RouteSplicer.Counts splices = controller.spliceCounts();
+            SpliceCounts splices = controller.spliceCounts();
             assertTrue(splices.divergent() > 0,
                     () -> "a reversing target never refused a splice: "
                             + splices);
@@ -277,7 +279,7 @@ class RouteFreshnessTest {
             Vec start = previous.asVec().add(0, 1.0e-5, 0);
             Vec end = current.asVec().add(0, 1.0e-5, 0);
             var physics = CollisionUtils.handlePhysics(instance, box,
-                    start.asPos(), end.sub(start).asVec(), null, false);
+                    start.asPos(), end.sub(start), null, false);
             assertFalse(physics.collisionX() || physics.collisionY()
                             || physics.collisionZ(),
                     () -> "blocked segment " + previous + " -> " + current
@@ -292,7 +294,7 @@ class RouteFreshnessTest {
                         + "meanToTarget travelled  sub/done  "
                         + "armed/joined seam/over/exp/sup short/div\n");
         for (Freshness run : sweep) {
-            RouteSplicer.Counts splices = run.splices();
+            SpliceCounts splices = run.splices();
             table.append(String.format(Locale.ROOT,
                     "%3dt/%4dms %6d %8.3f %8.3f %6d %13.3f %9.2f %5d/%-5d "
                             + "%6d/%-6d %3d/%3d/%3d/%3d %3d/%3d%n",
@@ -318,14 +320,14 @@ class RouteFreshnessTest {
             int latencyTicks, int adoptions, double meanAdoptGap,
             double maxAdoptGap, long stalePlans, double meanTargetDistance,
             double travelled, long submitted, long completed,
-            RouteSplicer.Counts splices) {
+            SpliceCounts splices) {
     }
 
     private static Freshness pursueController(Env env, int latencyTicks) {
         PursuitHarness.SearchGate gate = new PursuitHarness.SearchGate();
         Instance instance = loadedGatedFlatInstance(env, gate);
-        EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
-        actor.setInstance(instance, new Pos(0.5, SURFACE_Y, 0.5)).join();
+        EntityCreature actor = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, SURFACE_Y, 0.5));
         for (int settle = 0; settle < 3; settle++) env.tick();
 
         NavigationSystem system = NavigationSystem.builder()
@@ -402,7 +404,7 @@ class RouteFreshnessTest {
                         target.getPosition(), route, navigation.nodes());
                 env.tick();
             }
-            RouteSplicer.Counts splices = navigation.spliceCounts();
+            SpliceCounts splices = navigation.spliceCounts();
             navigation.close();
             return sampler.freshness(latencyTicks, system.metricsSnapshot(),
                     splices, TICKS);
@@ -446,7 +448,7 @@ class RouteFreshnessTest {
 
         private Freshness freshness(
                 int latencyTicks, NavigationMetricsSnapshot end,
-                RouteSplicer.Counts splices, int ticks) {
+                SpliceCounts splices, int ticks) {
             return new Freshness(latencyTicks, adoptions,
                     adoptions == 0 ? 0 : totalGap / adoptions, maximumGap,
                     end.stalePlans(), totalTargetDistance / ticks, travelled,

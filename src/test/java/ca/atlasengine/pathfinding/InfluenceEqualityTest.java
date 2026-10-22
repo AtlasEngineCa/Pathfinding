@@ -1,13 +1,25 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.influence.EntityFearInfluence;
 import ca.atlasengine.pathfinding.influence.EntitySnapshot;
 import ca.atlasengine.pathfinding.influence.InfluenceResult;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
@@ -197,7 +209,7 @@ class InfluenceEqualityTest {
                 .build();
         return NavigationProfile.builder(NavigationMode.GROUND, mob, GroundCapabilities.STANDARD
                         .withPlatformJump(PlatformJumpCapabilities.acrossGaps(2))
-                        .withClimbables(ClimbableCapabilities.STANDARD)).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+                        .withClimbables(ClimbableCapabilities.STANDARD)).build();
     }
 
     private record FearKey(double radius) {}
@@ -242,7 +254,7 @@ class InfluenceEqualityTest {
                         (actor, request) -> plan(request),
                         SharedMeshPolicy.builder()
                                 .promotionRequests(2).retentionRequests(1)
-                                .build());
+                                .build(), new NavigationMetrics());
         TestWorld world = new TestWorld();
         try {
             coordinator.request("seed-1", "target", 1, 0,
@@ -277,6 +289,6 @@ class InfluenceEqualityTest {
                         new PathNode(target.x(), target.y(), target.z(),
                                 PathNode.Movement.WALK, target.blockX(),
                                 target.blockY(), target.blockZ())),
-                2, 8));
+                2, 8, List.of()));
     }
 }

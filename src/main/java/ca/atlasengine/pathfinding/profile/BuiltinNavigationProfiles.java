@@ -3,11 +3,11 @@ package ca.atlasengine.pathfinding.profile;
 import ca.atlasengine.pathfinding.terrain.BuiltinMobProfiles;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityType;
+import net.minestom.server.entity.metadata.AgeableMobMeta;
 
 import java.util.Map;
-import net.minestom.server.entity.Entity;
-import net.minestom.server.entity.metadata.AgeableMobMeta;
 
 /**
  * Selects an evaluator and behavior profile for baseline entity families.

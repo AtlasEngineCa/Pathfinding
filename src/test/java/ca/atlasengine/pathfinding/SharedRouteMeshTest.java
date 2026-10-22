@@ -1,8 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.adaptive.SharedNavigationRoute;
 import ca.atlasengine.pathfinding.adaptive.SharedRouteMesh;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -74,11 +78,11 @@ class SharedRouteMeshTest {
                 EntityType.BEE);
         NavigationPlan incompatibleProfile = new NavigationPlan(
                 ground.start(), ground.target(), BOX, flying,
-                PathStatus.FOUND, ground.nodes(), 2, 8);
+                PathStatus.FOUND, ground.nodes(), 2, 8, List.of());
         NavigationPlan incompatibleBox = new NavigationPlan(
                 ground.start(), ground.target(),
                 new BoundingBox(1.8, 2.7, 1.8), PROFILE,
-                PathStatus.FOUND, ground.nodes(), 2, 8);
+                PathStatus.FOUND, ground.nodes(), 2, 8, List.of());
 
         SharedRouteMesh.Builder<String> profiles =
                 SharedRouteMesh.<String>builder(1)
@@ -106,7 +110,7 @@ class SharedRouteMeshTest {
                 PathNode.Movement.CLIMB, 2, 2, 0);
         NavigationPlan second = new NavigationPlan(
                 overlap.asVec(), end.asVec(), BOX, PROFILE,
-                PathStatus.FOUND, List.of(changed, end), 2, 8);
+                PathStatus.FOUND, List.of(changed, end), 2, 8, List.of());
         SharedNavigationRoute<String> route =
                 SharedRouteMesh.<String>builder(1)
                         .route("a", "b", first, 1)
@@ -152,7 +156,7 @@ class SharedRouteMeshTest {
         return new NavigationPlan(
                 plan.start(), plan.target(), plan.boundingBox(),
                 plan.profile(), status, plan.nodes(),
-                plan.visitedNodes(), plan.examinedNeighbors());
+                plan.visitedNodes(), plan.examinedNeighbors(), List.of());
     }
 
     private static NavigationPlan segment(int from, int to) {
@@ -164,6 +168,6 @@ class SharedRouteMeshTest {
                                 PathNode.Movement.WALK, from, 1, 0),
                         new PathNode(target.x(), 1, 0.5,
                                 PathNode.Movement.WALK, to, 1, 0)),
-                2, 8);
+                2, 8, List.of());
     }
 }

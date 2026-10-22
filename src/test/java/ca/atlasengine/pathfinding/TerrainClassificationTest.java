@@ -1,9 +1,22 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassification;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
@@ -31,8 +44,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class TerrainClassificationTest {
     private static final BoundingBox NARROW = new BoundingBox(0.6, 1.8, 0.6);
     private static final Block CUSTOM = Block.PINK_WOOL;
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     @Test
     void aNamedBlockRoutesUnderTheTypeItWasNamed() {
@@ -101,13 +112,12 @@ class TerrainClassificationTest {
     @Test
     void theHookReachesTheAnchoredClassifierEveryFollowerReads() {
         TestWorld world = new TestWorld().set(0, 0, 0, CUSTOM);
-        TerrainClassifier classifier = new TerrainClassifier();
 
-        assertEquals(TerrainType.WALKABLE, classifier.classifyAnchored(
+        assertEquals(TerrainType.WALKABLE, TerrainClassifier.classifyAnchored(
                 world, 0, 1, 0, NARROW, MobTraversalProfile.DEFAULT));
-        assertEquals(TerrainType.DAMAGING, classifier.classifyAnchored(
+        assertEquals(TerrainType.DAMAGING, TerrainClassifier.classifyAnchored(
                 world, 0, 1, 0, NARROW, naming(CUSTOM, TerrainType.DAMAGING)));
-        assertEquals(TerrainType.FENCE, classifier.classifyAnchored(
+        assertEquals(TerrainType.FENCE, TerrainClassifier.classifyAnchored(
                 world, 0, 0, 0, NARROW, naming(CUSTOM, TerrainType.FENCE)),
                 "select() prefers FENCE, so the diagonal rules see it too");
     }
@@ -130,10 +140,15 @@ class TerrainClassificationTest {
                 .set(0, 0, 0, Block.STONE)
                 .set(3, 0, 0, CUSTOM);
         GroundCapabilities jumping = GroundCapabilities.STANDARD
-                .withPlatformJump(PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(0).maxDrop(0).apexClearance(1).build());
+                .withPlatformJump(PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(3)
+                        .apexClearance(1)
+                        .build());
 
-        PathResult baseline = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5), NARROW, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), jumping, SearchControl.NONE);
-        PathResult named = pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5), NARROW, naming(CUSTOM, TerrainType.DAMAGING), GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), jumping, SearchControl.NONE);
+        PathResult baseline = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5),
+                NARROW, MobTraversalProfile.DEFAULT, 48, 8, jumping, SearchControl.NONE);
+        PathResult named = GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5),
+                NARROW, naming(CUSTOM, TerrainType.DAMAGING), 48, 8, jumping, SearchControl.NONE);
 
         assertTrue(baseline.found(), baseline::toString);
         assertEquals(PathNode.Movement.JUMP,
@@ -351,14 +366,16 @@ class TerrainClassificationTest {
     }
 
     private PathResult walk(TestWorld world, MobTraversalProfile profile) {
-        return pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(8.5, 1, 0.5), NARROW, profile, GroundSearchLimits.builder().maxPathLength(64).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(8.5, 1, 0.5), NARROW,
+                profile, 64, 8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static PathResult fly(TestWorld world, MobTraversalProfile mob) {
         return new EntityPathfinder().findPath(NavigationRequest.builder(world,
                         new Vec(0.5, 0.5, 0.5), new Vec(8.5, 0.5, 0.5),
                         new BoundingBox(0.6, 0.6, 0.6),
-                        NavigationProfile.builder(NavigationMode.FLYING, mob, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build())
+                        NavigationProfile.builder(NavigationMode.FLYING, mob,
+                                GroundCapabilities.STANDARD).build())
                 .maxPathLength(32).maxVisitedMultiplier(8).build(),
                 SearchControl.NONE);
     }
@@ -367,7 +384,8 @@ class TerrainClassificationTest {
         return new EntityPathfinder().findPath(NavigationRequest.builder(world,
                         new Vec(0.5, 1.5, 0.5), new Vec(8.5, 1.5, 0.5),
                         new BoundingBox(0.6, 0.6, 0.6),
-                        NavigationProfile.builder(NavigationMode.WATER, mob, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build())
+                        NavigationProfile.builder(NavigationMode.WATER, mob,
+                                GroundCapabilities.STANDARD).build())
                 .maxPathLength(32).maxVisitedMultiplier(8).build(),
                 SearchControl.NONE);
     }
@@ -424,7 +442,7 @@ class TerrainClassificationTest {
                         (actor, request) -> plan(request),
                         SharedMeshPolicy.builder()
                                 .promotionRequests(2).retentionRequests(1)
-                                .build());
+                                .build(), new NavigationMetrics());
         TestWorld world = new TestWorld();
         try {
             coordinator.request("seed-1", "target", 1, 0,
@@ -462,6 +480,6 @@ class TerrainClassificationTest {
                         new PathNode(target.x(), target.y(), target.z(),
                                 PathNode.Movement.WALK, target.blockX(),
                                 target.blockY(), target.blockZ())),
-                2, 8));
+                2, 8, List.of()));
     }
 }

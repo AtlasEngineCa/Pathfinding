@@ -1,6 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -190,6 +196,9 @@ class OpenableSwingCorpusTest {
             "fence|w1.4|PARTIAL;0,1,0",
             "mixed|w0.6|FOUND;0,1,0;0,1,-1;1,1,-2;2,1,-3;3,1,-3;4,1,-3;5,1,-2;6,1,-2;6,1,-1;6,1,0",
             "mixed|w1.4|FOUND;-1,1,-1;-1,1,-2;0,1,-3;0,1,-4;1,1,-4;2,1,-4;3,1,-4;4,1,-4;5,1,-4;6,1,-3;6,1,-2;6,1,-1;6,1,0",
+            
+            
+            
             "wide_gap_trapdoor|w0.6|FOUND;0,1,0;1,1,0;2,1,0;3,1,0;4,1,0;5,1,0;6,1,0",
             "wide_gap_trapdoor|w1.4|FOUND;0,1,0;1,1,0;2,1,0;3,1,0;4,1,0;5,1,0;6,1,0",
             "wide_gap_door|w0.6|PARTIAL;0,1,0;1,1,0;2,1,0",
@@ -226,6 +235,9 @@ class OpenableSwingCorpusTest {
             "fence|w1.4|PARTIAL;0,1,0",
             "mixed|w0.6|FOUND;0,1,0;0,1,-1;1,1,-2;2,1,-3;3,1,-3;4,1,-3;5,1,-2;6,1,-2;6,1,-1;6,1,0",
             "mixed|w1.4|FOUND;-1,1,-1;-1,1,-2;0,1,-3;0,1,-4;1,1,-4;2,1,-4;3,1,-4;4,1,-4;5,1,-4;6,1,-3;6,1,-2;6,1,-1;6,1,0",
+            
+            
+            
             "wide_gap_trapdoor|w0.6|FOUND;0,1,0;1,1,0;2,1,0;3,1,0;4,1,0;5,1,0;6,1,0",
             "wide_gap_trapdoor|w1.4|FOUND;0,1,0;1,1,0;2,1,0;3,1,0;4,1,0;5,1,0;6,1,0",
             "wide_gap_door|w0.6|FOUND;0,1,0;1,1,0;2,1,0;3,1,0;4,1,0;5,1,0;6,1,0",

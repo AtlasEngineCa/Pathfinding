@@ -1,12 +1,21 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.NavigationPlanCache;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -60,8 +69,8 @@ class NavigationPlanCacheTest {
                 BuiltinNavigationProfiles.forEntityType(EntityType.ZOMBIE),
                 PathStatus.FOUND,
                 java.util.List.of(
-                        new PathNode(0.5, 1, 0.5, PathNode.Movement.WALK),
-                        new PathNode(1.5, 1, 0.5, PathNode.Movement.WALK)),
-                2, 8);
+                        new PathNode(0.5, 1, 0.5, PathNode.Movement.WALK, 0, 1, 0),
+                        new PathNode(1.5, 1, 0.5, PathNode.Movement.WALK, 1, 1, 0)),
+                2, 8, List.of());
     }
 }

@@ -1,10 +1,13 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.internal.movement.MovementContext;
+import ca.atlasengine.pathfinding.internal.movement.MovementContext;
 import ca.atlasengine.pathfinding.internal.movement.PlatformJumpMovementExecutor;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
 import net.minestom.server.collision.Aerodynamics;
 import net.minestom.server.collision.BoundingBox;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityCreature;
@@ -52,7 +55,7 @@ class PlatformJumpE2ETest {
                 ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                         new Pos(0.5, SURFACE, z + 0.5));
                 EntityNavigationController controller =
-                        new EntityNavigationController(mob, service,
+                        TestWorlds.controller(mob, service,
                                 jumpProfile(EntityType.ZOMBIE,
                                         PlatformJumpCapabilities.acrossGaps(2)
                                                 .withRise(1).withDrop(1)),
@@ -113,9 +116,13 @@ class PlatformJumpE2ETest {
                 ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                         new Pos(0.5, SURFACE, 0.5));
                 EntityNavigationController controller =
-                        new EntityNavigationController(mob, service,
+                        TestWorlds.controller(mob, service,
                                 jumpProfile(EntityType.ZOMBIE,
-                                        PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(2).maxDrop(0).apexClearance(1).build()), 0.18);
+                                        PlatformJumpCapabilities.builder()
+                                                .maxHorizontalDistance(4)
+                                                .maxRise(2)
+                                                .apexClearance(1)
+                                                .build()), 0.18);
                 mob.controller = controller;
                 controller.moveTo(new Pos(8.5, SURFACE + 2, 0.5));
 
@@ -161,11 +168,14 @@ class PlatformJumpE2ETest {
                     new Pos(1.0, SURFACE, 1.0));
             mob.setBoundingBox(1.8, 1.8, 1.8);
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             jumpProfile(EntityType.RAVAGER,
                                     // Two straddled cells plus three gap
                                     // cells of anchor-to-anchor travel.
-                                    PlatformJumpCapabilities.builder().maxHorizontalDistance(5).maxRise(0).maxDrop(0).apexClearance(1).build()),
+                                    PlatformJumpCapabilities.builder()
+                                            .maxHorizontalDistance(5)
+                                            .apexClearance(1)
+                                            .build()),
                             0.2);
             mob.controller = controller;
             controller.moveTo(new Pos(9.0, SURFACE, 1.0));
@@ -212,7 +222,7 @@ class PlatformJumpE2ETest {
             ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                     new Pos(1.5, SURFACE, 0.94));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             jumpProfile(EntityType.ZOMBIE,
                                     PlatformJumpCapabilities.acrossGaps(2)),
                             0.18);
@@ -295,8 +305,8 @@ class PlatformJumpE2ETest {
         for (int y = SURFACE; y <= SURFACE + 2; y++) {
             instance.setBlock(1, y, 0, Block.STONE);
         }
-        EntityCreature mob = new EntityCreature(EntityType.ZOMBIE);
-        mob.setInstance(instance, new Pos(2.5, SURFACE, 0.5)).join();
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(2.5, SURFACE, 0.5));
         RecordingContext context = new RecordingContext(mob,
                 new PathNode(2.1, SURFACE, 0.5, PathNode.Movement.WALK,
                         2, SURFACE, 0),
@@ -339,9 +349,12 @@ class PlatformJumpE2ETest {
                 ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                         new Pos(-1.5, SURFACE, 0.5));
                 EntityNavigationController controller =
-                        new EntityNavigationController(mob, service,
+                        TestWorlds.controller(mob, service,
                                 jumpProfile(EntityType.ZOMBIE,
-                                        PlatformJumpCapabilities.builder().maxHorizontalDistance(5).maxRise(0).maxDrop(0).apexClearance(2.25).build()), 0.2);
+                                        PlatformJumpCapabilities.builder()
+                                                .maxHorizontalDistance(5)
+                                                .apexClearance(2.25)
+                                                .build()), 0.2);
                 mob.controller = controller;
                 controller.moveTo(new Pos(5.5, SURFACE, 0.5));
 
@@ -393,9 +406,12 @@ class PlatformJumpE2ETest {
                     standard.horizontalAirResistance(),
                     standard.verticalAirResistance()));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             jumpProfile(EntityType.ZOMBIE,
-                                    PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(0).maxDrop(0).apexClearance(8).build()), 0.18);
+                                    PlatformJumpCapabilities.builder()
+                                            .maxHorizontalDistance(3)
+                                            .apexClearance(8)
+                                            .build()), 0.18);
             mob.controller = controller;
             controller.moveTo(new Pos(8.5, SURFACE, 0.5));
 
@@ -431,7 +447,7 @@ class PlatformJumpE2ETest {
             ControlledCreature mob = spawn(instance, EntityType.ZOMBIE,
                     new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             jumpProfile(EntityType.ZOMBIE,
                                     PlatformJumpCapabilities.DISABLED), 0.18);
             mob.controller = controller;
@@ -519,9 +535,7 @@ class PlatformJumpE2ETest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

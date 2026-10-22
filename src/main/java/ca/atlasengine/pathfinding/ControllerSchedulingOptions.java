@@ -15,15 +15,13 @@ record ControllerSchedulingOptions(
         int maximumConcurrentSearches,
         int minimumSearchStallTicks,
         int shedBackoffTicks) {
+    static final int DEFAULT_MINIMUM_SEARCH_STALL_TICKS = 60;
+    static final int DEFAULT_SHED_BACKOFF_TICKS = 20;
+
     ControllerSchedulingOptions {
         if (maximumDeferredRequests <= 0 || maximumConcurrentSearches <= 0
                 || minimumSearchStallTicks <= 0 || shedBackoffTicks <= 0) {
             throw new IllegalArgumentException("invalid controller scheduling options");
         }
-    }
-
-    static ControllerSchedulingOptions direct(int parallelism) {
-        return new ControllerSchedulingOptions(
-                1, parallelism, 60, 20);
     }
 }

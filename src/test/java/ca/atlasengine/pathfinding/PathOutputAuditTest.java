@@ -1,6 +1,13 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
@@ -22,7 +29,9 @@ class PathOutputAuditTest {
     @Test
     void emitRepresentativeRoutesAndVerifyTheirGeometry() {
         TestWorld flat = new TestWorld().floor(-15, 15, -15, 15, 0, Block.STONE);
-        PathResult straight = new DiscreteGroundPathfinder().findPath(flat, new Pos(0.5, 1, 0.5), new Pos(10.5, 1, 0.5), MOB, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(40).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult straight = GroundSearches.find(flat, new Pos(0.5, 1, 0.5), new Pos(10.5, 1, 0.5),
+                MOB, MobTraversalProfile.DEFAULT, 40, 8, GroundCapabilities.STANDARD,
+                SearchControl.NONE);
         emit("straight", straight);
         assertEquals(11, straight.nodes().size());
         for (int i = 0; i <= 10; i++) {
@@ -33,7 +42,9 @@ class PathOutputAuditTest {
 
         TestWorld wall = new TestWorld().floor(-15, 15, -15, 15, 0, Block.STONE);
         for (int x = -2; x <= 2; x++) wall.column(x, 4, 1, 2, Block.STONE);
-        PathResult detour = new DiscreteGroundPathfinder().findPath(wall, new Pos(0.5, 1, 0.5), new Pos(0.5, 1, 8.5), MOB, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(40).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult detour = GroundSearches.find(wall, new Pos(0.5, 1, 0.5), new Pos(0.5, 1, 8.5),
+                MOB, MobTraversalProfile.DEFAULT, 40, 8, GroundCapabilities.STANDARD,
+                SearchControl.NONE);
         emit("wall-detour", detour);
         assertTrue(detour.found());
         assertEquals(8, detour.nodes().size() - 1,
@@ -43,7 +54,9 @@ class PathOutputAuditTest {
 
         TestWorld hazard = new TestWorld().floor(-10, 10, -10, 10, 0, Block.STONE)
                 .set(0, 1, 3, Block.CACTUS);
-        PathResult cactus = new DiscreteGroundPathfinder().findPath(hazard, new Pos(0.5, 1, 0.5), new Pos(0.5, 1, 7.5), MOB, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(40).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        PathResult cactus = GroundSearches.find(hazard, new Pos(0.5, 1, 0.5), new Pos(0.5, 1, 7.5),
+                MOB, MobTraversalProfile.DEFAULT, 40, 8, GroundCapabilities.STANDARD,
+                SearchControl.NONE);
         emit("cactus-detour", cactus);
         assertTrue(cactus.nodes().stream().noneMatch(node ->
                 node.blockX() == 0 && node.blockZ() == 3));
@@ -132,7 +145,8 @@ class PathOutputAuditTest {
     }
 
     private static PathResult groundPath(TestWorld world, MobTraversalProfile profile) {
-        return new DiscreteGroundPathfinder().findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, profile, GroundSearchLimits.builder().maxPathLength(20).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), MOB, profile,
+                20, 8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static double geometricLength(PathResult result) {

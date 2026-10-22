@@ -1,25 +1,18 @@
 package ca.atlasengine.pathfinding.examples;
 
-import net.minestom.server.instance.block.Block;
-import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
 import ca.atlasengine.pathfinding.EntityNavigationController;
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;
-import ca.atlasengine.pathfinding.profile.NavigationMode;
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;
 import ca.atlasengine.pathfinding.NavigationOptions;
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.NavigationState;
 import ca.atlasengine.pathfinding.NavigationSystem;
 import ca.atlasengine.pathfinding.PathDebugRenderer;
-import ca.atlasengine.pathfinding.event.NavigationCompletedEvent;
-import ca.atlasengine.pathfinding.event.NavigationStuckEvent;
-import ca.atlasengine.pathfinding.event.RouteReplanEvent;
-import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshStatus;
+import ca.atlasengine.pathfinding.event.NavigationCompletedEvent;
+import ca.atlasengine.pathfinding.event.NavigationStuckEvent;
+import ca.atlasengine.pathfinding.event.RouteReplanEvent;
 import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
 import ca.atlasengine.pathfinding.influence.EntityFearInfluence;
 import ca.atlasengine.pathfinding.influence.EntitySnapshot;
@@ -27,6 +20,12 @@ import ca.atlasengine.pathfinding.influence.NavigationArea;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.ReturnRadiusInfluence;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassification;
@@ -34,6 +33,7 @@ import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
+import net.minestom.server.instance.block.Block;
 
 import java.util.List;
 import java.util.Map;
@@ -144,7 +144,8 @@ final class DocumentedExamples {
                         .avoidSun(true)
                         .build();
 
-        return navigation.controller(entity, profile, 0.2);
+        return navigation.controllerBuilder(entity).profile(profile)
+                .movementPerTick(0.2).build();
     }
 
     /** Wiki, "Platform jumping", "Planned climbing", "Doors". */

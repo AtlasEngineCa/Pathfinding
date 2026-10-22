@@ -1,6 +1,11 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassifier;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -35,8 +40,6 @@ class ShapedGeometryAxisSweepTest {
     private static final BoundingBox STANDARD =
             new BoundingBox(0.6, 1.95, 0.6);
 
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     private static double[] widths() {
         return "all".equals(System.getProperty(WIDTH_PROPERTY))
@@ -234,8 +237,10 @@ class ShapedGeometryAxisSweepTest {
                 "east", new int[]{1, 0}, "west", new int[]{-1, 0});
         for (String facing : FACINGS) {
             TestWorld world = ladderTower(facing, 4);
-            PathResult result = pathfinder.findPath(world, new Pos(0.5 + free.get(facing)[0],
-                            1, 0.5 + free.get(facing)[1]), new Pos(0.5, 4, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(24).reachRange(0).maxVisitedMultiplier(8).build(), climbing, SearchControl.NONE);
+            PathResult result = GroundSearches.find(world, new Pos(0.5 + free.get(facing)[0],
+                            1, 0.5 + free.get(facing)[1]), new Pos(0.5, 4,
+                                    0.5), STANDARD, MobTraversalProfile.DEFAULT, 24, 8, climbing,
+                                    SearchControl.NONE);
             assertTrue(result.found(), () -> "no climb for " + facing);
             List<PathNode> climbs = result.nodes().stream().filter(node ->
                     node.movement() == PathNode.Movement.CLIMB).toList();
@@ -288,7 +293,9 @@ class ShapedGeometryAxisSweepTest {
 
     private PathResult crossLane(Block fixture, int dy, double width,
                                  MobTraversalProfile profile) {
-        return pathfinder.findPath(corridor(fixture, dy), new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), new BoundingBox(width, 1.95, width), profile, GroundSearchLimits.builder().maxPathLength(32).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(corridor(fixture, dy), new Pos(0.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), new BoundingBox(width, 1.95, width), profile, 32, 8,
+                GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     /** Sealed one-wide corridor: a refused cell has no detour around it. */
