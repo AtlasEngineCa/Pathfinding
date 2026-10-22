@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -37,7 +38,7 @@ class TerminalPartialTest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature mob = spawn(instance, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             BuiltinNavigationProfiles.forEntityType(
                                     EntityType.ZOMBIE), 0.18);
             mob.controller = controller;
@@ -70,7 +71,7 @@ class TerminalPartialTest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature mob = spawn(instance, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             BuiltinNavigationProfiles.forEntityType(
                                     EntityType.ZOMBIE), 0.18);
             mob.controller = controller;
@@ -100,7 +101,7 @@ class TerminalPartialTest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature mob = spawn(instance, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             BuiltinNavigationProfiles.forEntityType(
                                     EntityType.ZOMBIE), 0.18);
             mob.controller = controller;
@@ -127,9 +128,7 @@ class TerminalPartialTest {
 
     /** A sealed five-by-five pen on flat ground, with no way out. */
     private static Instance pen(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         for (int offset = -3; offset <= 3; offset++) {
             for (int y = 40; y <= 43; y++) {
                 instance.setBlock(3, y, offset, Block.STONE);

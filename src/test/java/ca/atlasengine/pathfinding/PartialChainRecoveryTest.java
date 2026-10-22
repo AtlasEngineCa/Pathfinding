@@ -1,6 +1,6 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -39,7 +39,7 @@ class PartialChainRecoveryTest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature mob = spawn(instance, new Pos(0.5, 40, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(mob, service,
+                    TestWorlds.controller(mob, service,
                             BuiltinNavigationProfiles.forEntityType(
                                     EntityType.ZOMBIE), 0.18);
             mob.controller = controller;
@@ -87,9 +87,7 @@ class PartialChainRecoveryTest {
      * plain left on its frontier when the visit budget ends it.
      */
     private static Instance barrier(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         for (int z = -30; z <= 30; z++) {
             if (z == GAP_Z) continue;
             for (int y = 40; y <= 42; y++) {

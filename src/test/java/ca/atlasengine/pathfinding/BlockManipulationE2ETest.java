@@ -1,11 +1,14 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.internal.movement.BlockManipulator;
+import ca.atlasengine.pathfinding.internal.movement.BlockManipulator;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.OpenableBlockFamily;
 import net.minestom.server.collision.BoundingBox;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.EntityCreature;
@@ -50,7 +53,7 @@ class BlockManipulationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature zombie = spawn(instance, new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(zombie, service, 0.18);
+                    TestWorlds.builtinController(zombie, service, 0.18);
             zombie.controller = controller;
             controller.moveTo(new Pos(5.5, SURFACE, 0.5),
                     NavigationModifiers.builder()
@@ -80,7 +83,7 @@ class BlockManipulationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature zombie = spawn(instance, new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    EntityNavigationController.builtin(zombie, service, 0.18);
+                    TestWorlds.builtinController(zombie, service, 0.18);
             zombie.controller = controller;
             controller.moveTo(new Pos(5.5, SURFACE, 0.5));
 
@@ -103,7 +106,7 @@ class BlockManipulationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature zombie = spawn(instance, new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(zombie, service,
+                    TestWorlds.controller(zombie, service,
                             zombieProfile(BlockManipulationCapabilities.STANDARD
                                     .closingBehind()), 0.18);
             zombie.controller = controller;
@@ -130,7 +133,7 @@ class BlockManipulationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature zombie = spawn(instance, new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(zombie, service,
+                    TestWorlds.controller(zombie, service,
                             zombieProfile(BlockManipulationCapabilities.STANDARD
                                     .closingBehind(0.5)), 0.18);
             zombie.controller = controller;
@@ -170,7 +173,7 @@ class BlockManipulationE2ETest {
                      new AsyncEntityPathfindingService(1, 8)) {
             ControlledCreature zombie = spawn(instance, new Pos(0.5, SURFACE, 0.5));
             EntityNavigationController controller =
-                    new EntityNavigationController(zombie, service,
+                    TestWorlds.controller(zombie, service,
                             climbing(zombieProfile(
                                     BlockManipulationCapabilities.of(
                                             OpenableBlockFamily.TRAPDOOR))),
@@ -290,9 +293,7 @@ class BlockManipulationE2ETest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

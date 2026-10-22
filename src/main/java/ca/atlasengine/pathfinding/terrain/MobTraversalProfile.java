@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Immutable movement capabilities and per-terrain cost overrides.
@@ -336,6 +337,11 @@ public final class MobTraversalProfile {
      */
     public boolean standsOnLava() {
         return standsOnLava;
+    }
+
+    /** The fluids this profile treats as ground, for a traversal snapshot. */
+    public Set<Block> standableFluids() {
+        return standsOnLava ? Set.of(Block.LAVA) : Set.of();
     }
 
     /**

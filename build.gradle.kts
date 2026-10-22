@@ -20,7 +20,7 @@ jmh {
 }
 
 group = "ca.atlasengine"
-version = "10.3.0"
+version = "11.0.0"
 
 repositories {
     mavenCentral()
@@ -71,6 +71,12 @@ tasks.test {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.release = 25
+}
+
+// The module exports only its API packages. A public signature naming a type
+// from a non-exported package compiles here but not for a modular consumer.
+tasks.named<JavaCompile>("compileJava") {
+    options.compilerArgs.addAll(listOf("-Xlint:exports", "-Werror"))
 }
 
 // Runnable demo server. It compiles against the published packages only, so

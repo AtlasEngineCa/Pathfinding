@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.search.StartNodeSampler;import net.minestom.server.collision.BoundingBox;
+import ca.atlasengine.pathfinding.search.StartNodeSampler;
+import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import org.junit.jupiter.api.Test;

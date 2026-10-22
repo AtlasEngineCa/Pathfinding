@@ -1,7 +1,8 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassification;
@@ -12,6 +13,7 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -20,14 +22,10 @@ import java.util.List;
  */
 public final class FlyNodeEvaluator extends SpatialNodeEvaluator {
     private static final int[][] FLY_DIRECTIONS = buildFlyDirections();
-    private final List<SearchNode> neighbors = new java.util.ArrayList<>(26);
+    private final List<SearchNode> neighbors = new ArrayList<>(26);
 
     public FlyNodeEvaluator(NavigationRequest request, SearchControl control) {
         super(request, control);
-    }
-
-    FlyNodeEvaluator(NavigationRequest request) {
-        this(request, SearchControl.NONE);
     }
 
     @Override
@@ -124,12 +122,9 @@ public final class FlyNodeEvaluator extends SpatialNodeEvaluator {
         int minX = point.blockX();
         int minY = point.blockY();
         int minZ = point.blockZ();
-        int sizeX = Math.max(1,
-                (int) Math.floor(request.boundingBox().width() + 1));
-        int sizeY = Math.max(1,
-                (int) Math.floor(request.boundingBox().height() + 1));
-        int sizeZ = Math.max(1,
-                (int) Math.floor(request.boundingBox().depth() + 1));
+        int sizeX = Footprint.width(request.boundingBox());
+        int sizeY = Footprint.height(request.boundingBox());
+        int sizeZ = Footprint.depth(request.boundingBox());
         MobTraversalProfile profile = mobProfile;
         TerrainClassification classification = profile.classification();
         EnumSet<TerrainType> types = EnumSet.noneOf(TerrainType.class);
@@ -138,7 +133,7 @@ public final class FlyNodeEvaluator extends SpatialNodeEvaluator {
             for (int y = minY; y < minY + sizeY; y++) {
                 for (int z = minZ; z < minZ + sizeZ; z++) {
                     if (control.interruptible() && (scanned++ & 63) == 0
-                            && (control.cancelled() || control.timedOut())) {
+                            && control.interrupted()) {
                         return TerrainType.BLOCKED;
                     }
                     types.add(TerrainClassifier.transform(
@@ -205,8 +200,7 @@ public final class FlyNodeEvaluator extends SpatialNodeEvaluator {
         if (flyMalus(nominal) >= 0) return nominal;
 
         BoundingBox box = request.boundingBox();
-        double averageSize = (box.width() + box.height() + box.depth()) / 3;
-        if (averageSize >= 1) {
+        if (Footprint.meanExtent(box) >= 1) {
             double minX = point.x() + box.relativeStart().x();
             double maxX = point.x() + box.relativeEnd().x();
             double minZ = point.z() + box.relativeStart().z();

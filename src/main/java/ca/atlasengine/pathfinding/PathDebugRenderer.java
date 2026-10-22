@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.result.PathNode;import net.minestom.server.coordinate.Point;
+import ca.atlasengine.pathfinding.result.PathNode;
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
@@ -69,7 +70,7 @@ public final class PathDebugRenderer {
         if (instance == null || plan == null) {
             throw new IllegalArgumentException("instance and plan");
         }
-        return render(instance, plan.result().nodes(), 0);
+        return render(instance, plan.nodes(), 0);
     }
 
     private int render(Instance instance, List<PathNode> nodes, int nodeIndex) {

@@ -1,7 +1,9 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.NavigationPlan;
-import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityCreature;
@@ -103,7 +105,7 @@ class PlanFollowToleranceTest {
         NavigationPlan plan = new NavigationPlan(HOME, target,
                 entity.getBoundingBox(),
                 BuiltinNavigationProfiles.forEntity(entity), PathStatus.FOUND,
-                List.of(node(HOME), node(target)), 2, 8);
+                List.of(node(HOME), node(target)), 2, 8, List.of());
         entity.teleport(HOME.withZ(HOME.z() + drift)).join();
         assertEquals(drift, entity.getPosition().distance(plan.start()), 1.0e-9,
                 "the fixture must place the entity exactly where it intends");
@@ -112,12 +114,13 @@ class PlanFollowToleranceTest {
 
     private static PathNode node(Pos point) {
         return new PathNode(point.x(), point.y(), point.z(),
-                PathNode.Movement.WALK);
+                PathNode.Movement.WALK,
+                point.blockX(), point.blockY(), point.blockZ());
     }
 
     private static EntityNavigationController controller(
             Entity entity, AsyncEntityPathfindingService service) {
-        return new EntityNavigationController(entity, service,
+        return TestWorlds.controller(entity, service,
                 BuiltinNavigationProfiles.forEntity(entity), 0.18);
     }
 
@@ -129,9 +132,7 @@ class PlanFollowToleranceTest {
     }
 
     private static Instance prepared(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 }

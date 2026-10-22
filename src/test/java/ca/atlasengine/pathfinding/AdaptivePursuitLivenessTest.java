@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
@@ -19,7 +20,6 @@ import static ca.atlasengine.pathfinding.PursuitHarness.MOB_PER_TICK;
 import static ca.atlasengine.pathfinding.PursuitHarness.SURFACE_Y;
 import static ca.atlasengine.pathfinding.PursuitHarness.loadedGatedFlatInstance;
 import static ca.atlasengine.pathfinding.PursuitHarness.orbit;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -159,5 +159,4 @@ class AdaptivePursuitLivenessTest {
             env.destroyInstance(instance);
         }
     }
-
 }

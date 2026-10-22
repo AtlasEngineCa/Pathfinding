@@ -1,9 +1,9 @@
 package ca.atlasengine.pathfinding.examples;
 
-import net.kyori.adventure.text.Component;
 import ca.atlasengine.pathfinding.EntityNavigationController;
 import ca.atlasengine.pathfinding.NavigationState;
 import ca.atlasengine.pathfinding.PathDebugRenderer;
+import net.kyori.adventure.text.Component;
 import net.minestom.server.component.DataComponents;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.entity.EntityCreature;

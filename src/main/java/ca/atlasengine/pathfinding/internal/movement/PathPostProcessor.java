@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
+import ca.atlasengine.pathfinding.internal.LoadedBlocks;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.result.PathNode;
@@ -31,10 +32,11 @@ public final class PathPostProcessor {
     private static List<PathNode> adjustCauldronNodes(
             Instance instance, List<PathNode> path) {
         if (instance == null || path.isEmpty()) return path;
+        Block.Getter blocks = LoadedBlocks.view(instance);
         List<PathNode> adjusted = new ArrayList<>(path);
         for (int i = 0; i < adjusted.size(); i++) {
             PathNode node = adjusted.get(i);
-            Block block = instance.getBlock(
+            Block block = blocks.getBlock(
                     node.graphX(), node.graphY(), node.graphZ(),
                     Block.Getter.Condition.TYPE);
             if (!BlockTagIndex.contains("cauldrons", block)) continue;

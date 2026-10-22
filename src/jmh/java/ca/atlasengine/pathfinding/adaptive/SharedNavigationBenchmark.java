@@ -1,14 +1,14 @@
 package ca.atlasengine.pathfinding.adaptive;
 
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.PathfindingBenchmark;
 import ca.atlasengine.pathfinding.profile.GroundCapabilities;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathResult;
-import ca.atlasengine.pathfinding.PathfindingBenchmark;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
@@ -27,7 +27,6 @@ import org.openjdk.jmh.annotations.State;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /** Mass-navigation comparisons using identical validated A* routes. */
@@ -137,7 +136,8 @@ public class SharedNavigationBenchmark {
         public void setup() {
             buildTerrain();
             BoundingBox box = new BoundingBox(width, 2.7, width);
-            NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+            NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND,
+                    MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).build();
             Pos target = new Pos(256.5, 1, 0.5);
             for (int source = 0; source < sourceCount; source++) {
                 Pos start = new Pos(source * 16 + 0.5, 1, 0.5);

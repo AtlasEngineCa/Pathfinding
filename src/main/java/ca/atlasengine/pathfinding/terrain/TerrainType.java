@@ -79,19 +79,5 @@ public enum TerrainType {
      * its anchor cell does not. Caps the penalty so a large mob is discouraged
      * from grazing danger without being walled off by its own width.
      */
-    BIG_MOBS_CLOSE_TO_DANGER;
-
-    /**
-     * The baseline cost of entering a cell of this category.
-     *
-     * @deprecated a category no longer owns its cost. Call
-     *     {@link TerrainCosts#baseline(TerrainType)} for the same value, or
-     *     {@link MobTraversalProfile#malus(TerrainType)} for the cost a
-     *     specific mob actually pays, which is what nearly every caller wants.
-     *     Retained so existing binaries and sources keep working.
-     */
-    @Deprecated(since = "10.3.0")
-    public double defaultMalus() {
-        return TerrainCosts.baseline(this);
-    }
+    BIG_MOBS_CLOSE_TO_DANGER
 }

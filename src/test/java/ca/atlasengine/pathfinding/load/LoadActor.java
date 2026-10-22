@@ -1,19 +1,19 @@
 package ca.atlasengine.pathfinding.load;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import net.minestom.server.instance.block.Block;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.EntityNavigationController;
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
-import ca.atlasengine.pathfinding.NavigationState;
-import ca.atlasengine.pathfinding.NavigationSystem;
-import ca.atlasengine.pathfinding.result.PathStatus;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
 import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.NavigationPlanCache;
+import ca.atlasengine.pathfinding.NavigationState;
+import ca.atlasengine.pathfinding.NavigationSystem;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
 import ca.atlasengine.pathfinding.internal.adaptive.TargetCell;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -22,6 +22,7 @@ import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.instance.Instance;
+import net.minestom.server.instance.block.Block;
 
 import java.util.List;
 import java.util.Optional;
@@ -205,7 +206,12 @@ final class LoadActor implements AutoCloseable {
         if (shape == Shape.PATROL && replayFromCache(worldRevision)) return;
         NavigationRequest request = request(instance, destination);
         long started = System.nanoTime();
-        handle = system.sharedMesh().plan(SharedMeshRequest.builder(request).actor(entity.getUuid()).target(targetKey()).worldRevision(worldRevision).currentTick(tick).build());
+        handle = system.sharedMesh().plan(SharedMeshRequest.builder(request)
+                .actor(entity.getUuid())
+                .target(targetKey())
+                .worldRevision(worldRevision)
+                .currentTick(tick)
+                .build());
         metrics.dispatchTook(System.nanoTime() - started);
         metrics.adaptiveCall();
         // Latency and outcome counts come from NavigationMetrics. The harness

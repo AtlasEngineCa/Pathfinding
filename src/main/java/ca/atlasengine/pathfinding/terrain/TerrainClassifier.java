@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.terrain;
 
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
@@ -10,16 +11,19 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Stateless Minestom block-to-navigation-terrain classifier. Shared entry
- * points are static so movement evaluators can reuse them without retaining
- * classifier state.
+ * Stateless Minestom block-to-navigation-terrain classifier.
  */
 public final class TerrainClassifier {
     private static final int[][] AXIAL_DIRECTIONS = {
             {1, 0, 0}, {-1, 0, 0}, {0, 1, 0},
             {0, -1, 0}, {0, 0, 1}, {0, 0, -1}
     };
-    public TerrainType classify(Block.Getter blocks, Point point,
+
+    private TerrainClassifier() {
+    }
+
+    /** Classifies the cell under an entity centred at {@code point}. */
+    public static TerrainType classify(Block.Getter blocks, Point point,
                                     BoundingBox box, MobTraversalProfile profile) {
         int minX = (int) Math.floor(point.x() - box.width() / 2);
         int minY = point.blockY();
@@ -31,15 +35,16 @@ public final class TerrainClassifier {
      * Classifies an integer minimum-corner graph node. The graph coordinate is
      * not the entity's physical center.
      */
-    public TerrainType classifyAnchored(Block.Getter blocks,
-                                            int minX, int minY, int minZ,
-                                            BoundingBox box,
-                                            MobTraversalProfile profile) {
+    public static TerrainType classifyAnchored(Block.Getter blocks,
+                                               int minX, int minY, int minZ,
+                                               BoundingBox box,
+                                               MobTraversalProfile profile) {
         return classifyAnchored(blocks, minX, minY, minZ, box, profile,
                 false, SearchControl.NONE);
     }
 
-    public TerrainType classifyAnchored(
+    /** As above, abandoning a cell scan the search has been told to stop. */
+    public static TerrainType classifyAnchored(
             Block.Getter blocks, int minX, int minY, int minZ,
             BoundingBox box, MobTraversalProfile profile,
             SearchControl control) {
@@ -47,14 +52,11 @@ public final class TerrainClassifier {
                 blocks, minX, minY, minZ, box, profile, false, control);
     }
 
-    public TerrainType classifyAnchoredAmphibious(
-            Block.Getter blocks, int minX, int minY, int minZ,
-            BoundingBox box, MobTraversalProfile profile) {
-        return classifyAnchored(blocks, minX, minY, minZ, box, profile,
-                true, SearchControl.NONE);
-    }
-
-    public TerrainType classifyAnchoredAmphibious(
+    /**
+     * The amphibious variant, which marks water against a barrier as
+     * {@link TerrainType#WATER_BORDER} at the cell's own level.
+     */
+    public static TerrainType classifyAnchoredAmphibious(
             Block.Getter blocks, int minX, int minY, int minZ,
             BoundingBox box, MobTraversalProfile profile,
             SearchControl control) {
@@ -62,15 +64,15 @@ public final class TerrainClassifier {
                 blocks, minX, minY, minZ, box, profile, true, control);
     }
 
-    private TerrainType classifyAnchored(
+    private static TerrainType classifyAnchored(
             Block.Getter blocks, int minX, int minY, int minZ,
             BoundingBox box, MobTraversalProfile profile,
             boolean waterBorderAtCellLevel, SearchControl control) {
         TerrainClassification classification = profile.classification();
         Set<TerrainType> types = EnumSet.noneOf(TerrainType.class);
-        int sizeX = Math.max(1, (int) Math.floor(box.width() + 1));
-        int sizeY = Math.max(1, (int) Math.floor(box.height() + 1));
-        int sizeZ = Math.max(1, (int) Math.floor(box.depth() + 1));
+        int sizeX = Footprint.width(box);
+        int sizeY = Footprint.height(box);
+        int sizeZ = Footprint.depth(box);
         // Where the entity stands once it occupies this node, which is what
         // an openable's swung panel has to leave room for. Only a profile
         // that swings one ever needs to know.
@@ -88,7 +90,7 @@ public final class TerrainClassifier {
             for (int y = minY; y < minY + sizeY; y++) {
                 for (int z = minZ; z < minZ + sizeZ; z++) {
                     if (control.interruptible() && (scanned++ & 63) == 0
-                            && (control.cancelled() || control.timedOut())) {
+                            && control.interrupted()) {
                         return TerrainType.BLOCKED;
                     }
                     Block block = blocks.getBlock(
@@ -175,7 +177,7 @@ public final class TerrainClassifier {
                 x - stepX, y, z - stepZ, Block.Getter.Condition.TYPE));
     }
 
-    private TerrainType cellType(
+    private static TerrainType cellType(
             Block.Getter blocks, Block block, int x, int y, int z,
             MobTraversalProfile profile, TerrainClassification classification,
             boolean waterBorderAtCellLevel, Point rest, BoundingBox box) {
@@ -219,7 +221,7 @@ public final class TerrainClassifier {
         if (block.compare(Block.LAVA)) return TerrainType.LAVA;
         if (BlockTraversalData.isBurning(block)) return TerrainType.FIRE;
         if (BlockTraversalData.isDoor(block)) {
-            if (Boolean.parseBoolean(property(block, "open", "false"))) {
+            if (BlockTraversalData.isOpen(block)) {
                 return TerrainType.DOOR_OPEN;
             }
             return BlockTraversalData.isHandOpenableDoor(block)
@@ -230,7 +232,7 @@ public final class TerrainClassifier {
         if (BlockTraversalData.isLeaves(block)) return TerrainType.LEAVES;
         if (BlockTraversalData.isFence(block)
                 || (BlockTraversalData.isFenceGate(block)
-                    && !Boolean.parseBoolean(property(block, "open", "false")))) {
+                    && !BlockTraversalData.isOpen(block))) {
             return TerrainType.FENCE;
         }
         if (block.compare(Block.WATER) || block.liquid()) {
@@ -267,13 +269,7 @@ public final class TerrainClassifier {
         return type;
     }
 
-    private static String property(
-            Block block, String name, String defaultValue) {
-        String value = block.getProperty(name);
-        return value == null ? defaultValue : value;
-    }
-
-    private TerrainType pathTypeAt(Block.Getter blocks, Block block,
+    private static TerrainType pathTypeAt(Block.Getter blocks, Block block,
                                    int x, int y, int z,
                                    MobTraversalProfile profile,
                                    TerrainClassification classification,
@@ -304,7 +300,7 @@ public final class TerrainClassifier {
         return standingOn(support, blocks, x, y, z, classification);
     }
 
-    private TerrainType standingOn(TerrainType support,
+    private static TerrainType standingOn(TerrainType support,
                                        Block.Getter blocks, int x, int y, int z,
                                        TerrainClassification classification) {
         return switch (support) {
@@ -370,7 +366,7 @@ public final class TerrainClassifier {
                 highest = malus;
             }
         }
-        if ((int) Math.floor(box.width() + 1) > 1) {
+        if (Footprint.width(box) > 1) {
             boolean currentIsCheaper = profile.malus(current) < highest;
             if (currentIsCheaper
                     && profile.malus(TerrainType.BIG_MOBS_CLOSE_TO_DANGER) < highest) {
@@ -382,5 +378,4 @@ public final class TerrainClassifier {
         }
         return selected;
     }
-
 }

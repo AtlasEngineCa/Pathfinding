@@ -1,16 +1,23 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshStatus;
-import net.minestom.server.coordinate.ChunkRange;
+import ca.atlasengine.pathfinding.event.NavigationEvent;
+import ca.atlasengine.pathfinding.event.PathComputedEvent;
+import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -20,6 +27,9 @@ import net.minestom.testing.EnvTest;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.SplittableRandom;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,11 +40,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class NavigationSystemTest {
     @Test
     void primaryFacadeNavigatesBuiltinEntityEndToEnd(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature entity = new EntityCreature(EntityType.ZOMBIE);
-        entity.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature entity = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
 
         try (NavigationSystem navigation = NavigationSystem.builder()
                 .parallelism(1)
@@ -110,11 +118,9 @@ class NavigationSystemTest {
     @Test
     void computedPlanCanBeFedDirectlyToFollowerWithoutAnotherSearch(Env env)
             throws InterruptedException {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature entity = new EntityCreature(EntityType.ZOMBIE);
-        entity.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature entity = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
         NavigationProfile profile = BuiltinNavigationProfiles.forEntity(entity);
 
         try (NavigationSystem navigation = NavigationSystem.builder()
@@ -153,9 +159,7 @@ class NavigationSystemTest {
 
     @Test
     void adaptiveFacadePromotesRealAStarPlansAndReturnsFollowerReadyReuse(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 1);
         NavigationProfile profile =
                 BuiltinNavigationProfiles.forEntityType(EntityType.ZOMBIE);
         NavigationRequest request = NavigationRequest.builder(instance,
@@ -168,12 +172,29 @@ class NavigationSystemTest {
         try (NavigationSystem navigation = NavigationSystem.builder()
                 .parallelism(1).queueCapacity(8)
                 .sharedMesh(SharedMeshOptions.enabledWith(adaptive)).build()) {
-            SharedMeshHandle first = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-1").target("player").worldRevision(1).currentTick(0).build());
-            SharedMeshHandle second = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-2").target("player").worldRevision(1).currentTick(1).build());
+            SharedMeshHandle first = navigation.sharedMesh().plan(SharedMeshRequest.builder(request)
+                    .actor("mob-1")
+                    .target("player")
+                    .worldRevision(1)
+                    .currentTick(0)
+                    .build());
+            SharedMeshHandle second = navigation.sharedMesh().plan(
+                    SharedMeshRequest.builder(request)
+                            .actor("mob-2")
+                            .target("player")
+                            .worldRevision(1)
+                            .currentTick(1)
+                            .build());
             assertTrue(first.plan().join().usable());
             assertTrue(second.plan().join().usable());
 
-            SharedMeshHandle shared = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-3").target("player").worldRevision(1).currentTick(2).build());
+            SharedMeshHandle shared = navigation.sharedMesh().plan(
+                    SharedMeshRequest.builder(request)
+                            .actor("mob-3")
+                            .target("player")
+                            .worldRevision(1)
+                            .currentTick(2)
+                            .build());
             assertEquals(SharedMeshSource.SHARED_TARGET_FIELD,
                     shared.source());
             NavigationPlan replay = shared.plan().join();
@@ -190,9 +211,7 @@ class NavigationSystemTest {
 
     @Test
     void adaptiveThreeDimensionalRouteIsReusedByLiveFlyingFollower(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         EntityCreature bee = new EntityCreature(EntityType.BEE);
         Pos start = new Pos(0.5, 45, 0.5);
         Pos target = new Pos(12.5, 49, 5.5);
@@ -207,11 +226,27 @@ class NavigationSystemTest {
         try (NavigationSystem navigation = NavigationSystem.builder()
                 .parallelism(1).queueCapacity(8)
                 .sharedMesh(SharedMeshOptions.enabledWith(adaptive)).build()) {
-            navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("bee-seed-1").target("player").worldRevision(1).currentTick(0).build())
+            navigation.sharedMesh().plan(SharedMeshRequest.builder(request)
+                    .actor("bee-seed-1")
+                    .target("player")
+                    .worldRevision(1)
+                    .currentTick(0)
+                    .build())
                     .plan().join();
-            navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("bee-seed-2").target("player").worldRevision(1).currentTick(1).build())
+            navigation.sharedMesh().plan(SharedMeshRequest.builder(request)
+                    .actor("bee-seed-2")
+                    .target("player")
+                    .worldRevision(1)
+                    .currentTick(1)
+                    .build())
                     .plan().join();
-            SharedMeshHandle shared = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor(bee.getUuid()).target("player").worldRevision(1).currentTick(2).build());
+            SharedMeshHandle shared = navigation.sharedMesh().plan(
+                    SharedMeshRequest.builder(request)
+                            .actor(bee.getUuid())
+                            .target("player")
+                            .worldRevision(1)
+                            .currentTick(2)
+                            .build());
             assertEquals(SharedMeshSource.SHARED_TARGET_FIELD,
                     shared.source());
             NavigationPlan plan = shared.plan().join();
@@ -241,9 +276,7 @@ class NavigationSystemTest {
 
     @Test
     void systemSnapshotCoversSearchesLatencyAndAdaptiveReuseAtOnce(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 1);
         NavigationProfile profile =
                 BuiltinNavigationProfiles.forEntityType(EntityType.ZOMBIE);
         NavigationRequest request = NavigationRequest.builder(instance,
@@ -259,11 +292,28 @@ class NavigationSystemTest {
             NavigationMetricsSnapshot before = navigation.metricsSnapshot();
             assertEquals(0, before.searches().submitted());
 
-            SharedMeshHandle first = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-1").target("player").worldRevision(1).currentTick(0).build());
-            SharedMeshHandle second = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-2").target("player").worldRevision(1).currentTick(1).build());
+            SharedMeshHandle first = navigation.sharedMesh().plan(SharedMeshRequest.builder(request)
+                    .actor("mob-1")
+                    .target("player")
+                    .worldRevision(1)
+                    .currentTick(0)
+                    .build());
+            SharedMeshHandle second = navigation.sharedMesh().plan(
+                    SharedMeshRequest.builder(request)
+                            .actor("mob-2")
+                            .target("player")
+                            .worldRevision(1)
+                            .currentTick(1)
+                            .build());
             first.plan().join();
             second.plan().join();
-            SharedMeshHandle shared = navigation.sharedMesh().plan(SharedMeshRequest.builder(request).actor("mob-3").target("player").worldRevision(1).currentTick(2).build());
+            SharedMeshHandle shared = navigation.sharedMesh().plan(
+                    SharedMeshRequest.builder(request)
+                            .actor("mob-3")
+                            .target("player")
+                            .worldRevision(1)
+                            .currentTick(2)
+                            .build());
             shared.plan().join();
 
             NavigationMetricsSnapshot after = navigation.metricsSnapshot();
@@ -303,11 +353,9 @@ class NavigationSystemTest {
 
     @Test
     void controllerOutcomesAreCountedWithoutRetainingAnyController(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
-        EntityCreature entity = new EntityCreature(EntityType.ZOMBIE);
-        entity.setInstance(instance, new Pos(0.5, 40, 0.5)).join();
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature entity = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
 
         try (NavigationSystem navigation = NavigationSystem.builder()
                 .parallelism(1).queueCapacity(8).movementPerTick(0.2).build()) {
@@ -368,9 +416,7 @@ class NavigationSystemTest {
     @Test
     void automaticEntityHandleFollowsMovingTargetAndCleansUpOnRemoval(Env env)
             throws InterruptedException {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
         EntityCreature seedActorOne = new EntityCreature(EntityType.ZOMBIE);
         EntityCreature seedActorTwo = new EntityCreature(EntityType.ZOMBIE);
@@ -621,9 +667,7 @@ class NavigationSystemTest {
     }
 
     private static Instance flatInstance(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 1);
         return instance;
     }
 
@@ -648,5 +692,77 @@ class NavigationSystemTest {
                 .actor(actorKey).target("player")
                 .worldRevision(1).currentTick(tick)
                 .strategy(strategy).build();
+    }
+
+    @Test
+    void controllerBuilderAppliesEverySetting(Env env) {
+        Instance instance = TestWorlds.loadedFlat(env, 1);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 41, 0.5));
+        mob.setNoGravity(true);
+        env.tick();
+
+        NavigationProfile flying = BuiltinNavigationProfiles
+                .forEntityType(EntityType.ZOMBIE)
+                .withNavigationType(NavigationMode.FLYING);
+        List<NavigationEvent> computed = new CopyOnWriteArrayList<>();
+        try (NavigationSystem navigation = NavigationSystem.builder()
+                .parallelism(1).queueCapacity(8).build()) {
+            navigation.eventNode().addListener(
+                    PathComputedEvent.class, computed::add);
+            EntityNavigationController controller = navigation
+                    .controllerBuilder(mob)
+                    .profile(flying)
+                    .movementPerTick(0.3)
+                    .executionMode(MovementExecutionMode.DIRECT_COLLISION)
+                    .startNodeRandom(new SplittableRandom(7))
+                    .build();
+            controller.moveTo(new Pos(8.5, 43, 0.5));
+            TestWorlds.awaitRoute(env, controller);
+
+            assertTrue(controller.nodes().stream()
+                            .allMatch(node -> node.movement()
+                                    == PathNode.Movement.FLY),
+                    "the fixed profile planned the route: "
+                            + controller.nodes());
+            assertFalse(computed.isEmpty(),
+                    "a built controller reports to the system's event node");
+            Pos before = mob.getPosition();
+            controller.tick();
+            assertTrue(mob.getPosition().distance(before) > 0,
+                    "direct execution moved the entity itself");
+            assertTrue(mob.getPosition().distance(before) <= 0.3 + 1.0e-9,
+                    "at the configured speed");
+            assertEquals(0, mob.getVelocity().length(), 1.0e-9,
+                    "direct execution leaves no velocity behind");
+            controller.close();
+        } finally {
+            mob.remove();
+        }
+    }
+
+    @Test
+    void controllerBuilderRejectsInvalidSettings(Env env) {
+        Instance instance = TestWorlds.loadedFlat(env, 0);
+        EntityCreature mob = TestWorlds.spawn(instance, EntityType.ZOMBIE,
+                new Pos(0.5, 40, 0.5));
+        try (NavigationSystem navigation = NavigationSystem.create()) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> navigation.controllerBuilder(null));
+            NavigationSystem.ControllerBuilder builder =
+                    navigation.controllerBuilder(mob);
+            assertThrows(IllegalArgumentException.class,
+                    () -> builder.profile(null));
+            assertThrows(IllegalArgumentException.class,
+                    () -> builder.movementPerTick(0));
+            assertThrows(IllegalArgumentException.class,
+                    () -> builder.movementPerTick(Double.NaN));
+            assertThrows(IllegalArgumentException.class,
+                    () -> builder.executionMode(null));
+            assertThrows(IllegalArgumentException.class,
+                    () -> builder.startNodeRandom(null));
+        } finally {
+            mob.remove();
+        }
     }
 }

@@ -1,6 +1,6 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.result.PathStop;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.event.NavigationCancelledEvent;
+import ca.atlasengine.pathfinding.event.NavigationCancelledEvent;
 import ca.atlasengine.pathfinding.event.NavigationCompletedEvent;
 import ca.atlasengine.pathfinding.event.NavigationEvent;
 import ca.atlasengine.pathfinding.event.NavigationEventSink;
@@ -11,6 +11,8 @@ import ca.atlasengine.pathfinding.event.PathShedEvent;
 import ca.atlasengine.pathfinding.event.RouteReplanEvent;
 import ca.atlasengine.pathfinding.event.TargetUnreachableEvent;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.RouteLength;
+import ca.atlasengine.pathfinding.internal.SearchLatency;
 import ca.atlasengine.pathfinding.internal.movement.BlockManipulator;
 import ca.atlasengine.pathfinding.internal.movement.ClimbMovementExecutor;
 import ca.atlasengine.pathfinding.internal.movement.MovementContext;
@@ -18,13 +20,24 @@ import ca.atlasengine.pathfinding.internal.movement.MovementExecutor;
 import ca.atlasengine.pathfinding.internal.movement.NavigationRequestFactory;
 import ca.atlasengine.pathfinding.internal.movement.PartialRouteReplanner;
 import ca.atlasengine.pathfinding.internal.movement.PathPostProcessor;
-import ca.atlasengine.pathfinding.internal.movement.PathSubmitter;
 import ca.atlasengine.pathfinding.internal.movement.PlatformJumpMovementExecutor;
 import ca.atlasengine.pathfinding.internal.movement.ProgressMonitor;
 import ca.atlasengine.pathfinding.internal.movement.RouteGeometry;
 import ca.atlasengine.pathfinding.internal.movement.RouteSplicer;
 import ca.atlasengine.pathfinding.internal.movement.VolumeMovementExecutor;
 import ca.atlasengine.pathfinding.internal.movement.WalkMovementExecutor;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.metrics.SpliceCounts;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.result.PathStop;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
@@ -35,6 +48,7 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 import java.util.random.RandomGenerator;
 
 /**
@@ -48,7 +62,9 @@ import java.util.random.RandomGenerator;
  * controller a caller holds is one it must tick.</p>
  */
 public class EntityNavigationController implements AutoCloseable {
-    private static final long MICROS_PER_TICK = 50_000;
+    /** Submission priority of a replan that leaves the entity with no route. */
+    private static final int ROUTELESS_PRIORITY = 100;
+    private static final int REPLAN_PRIORITY = 10;
     private static final WalkMovementExecutor WALK = new WalkMovementExecutor();
     private static final ClimbMovementExecutor CLIMB = new ClimbMovementExecutor();
     private static final MovementExecutor VOLUME = new VolumeMovementExecutor();
@@ -56,7 +72,8 @@ public class EntityNavigationController implements AutoCloseable {
             new PlatformJumpMovementExecutor();
 
     private final Entity entity;
-    private final PathSubmitter pathSubmitter;
+    private final NavigationRequestFactory requests;
+    private final ControllerRequestSubmitter submitter;
     private final NavigationProfile navigationProfile;
     private NavigationProfile activeNavigationProfile;
     private final double movementPerTick;
@@ -101,90 +118,30 @@ public class EntityNavigationController implements AutoCloseable {
     private int platformJumpAlignmentNode = -1;
     private int platformJumpAlignmentTicks;
     private int lastGroundImpulseNode = -1;
+    /** Set from any thread by {@link #blockChanged}, consumed by tick(). */
+    private volatile boolean blockChangePending;
 
     /**
-     * Creates a controller backed by the modular movement-model dispatcher.
+     * Controllers are created by {@link NavigationSystem#controller(Entity)}
+     * and {@link NavigationSystem#controllerBuilder(Entity)}, which wire them
+     * to the system's admission layer and event node.
      *
-     * <p>The supplied profile selects ground, water, flying, amphibious, or
-     * wall-climber planning. Ground and wall-climber profiles retain normal
-     * collision-aware walking, while water and flying profiles follow the
-     * path's three-dimensional waypoints.</p>
+     * @param refreshBuiltinProfile re-derive the built-in profile from the
+     *                              entity's live metadata for every search
+     *                              rather than keep {@code profile}
      */
-    public EntityNavigationController(Entity entity,
-                                      AsyncEntityPathfindingService service,
-                                      NavigationProfile profile,
-                                      double movementPerTick) {
-        this(entity, service, profile, movementPerTick,
-                MovementExecutionMode.PHYSICS_VELOCITY);
-    }
-
-    public EntityNavigationController(
-            Entity entity, AsyncEntityPathfindingService service,
-            NavigationProfile profile, double movementPerTick,
-            MovementExecutionMode movementExecutionMode) {
-        this(entity, service, profile, movementPerTick, false,
-                movementExecutionMode,
-                NavigationRequestFactory.entityRandomOrNull(entity));
-    }
-
-    /**
-     * Creates a modular controller with an authoritative tick-thread random
-     * stream for small-flyer start sampling.
-     *
-     * <p>Pass the entity AI's own random source when the integration exposes
-     * one. The normal constructors retain a stable UUID-derived fallback
-     * because Minestom entities do not currently expose such a stream.</p>
-     */
-    public EntityNavigationController(
-            Entity entity, AsyncEntityPathfindingService service,
-            NavigationProfile profile, double movementPerTick,
-            MovementExecutionMode movementExecutionMode,
-            RandomGenerator startNodeRandom) {
-        this(entity, service, profile, movementPerTick,
-                false, movementExecutionMode, startNodeRandom);
-    }
-
-    EntityNavigationController(
-            Entity entity, AsyncEntityPathfindingService service,
-            NavigationProfile profile, double movementPerTick,
-            MovementExecutionMode movementExecutionMode,
-            ControllerRequestSubmitter controllerSubmitter,
-            ControllerSchedulingOptions schedulingOptions) {
-        this(entity, service, profile, movementPerTick, false,
-                movementExecutionMode,
-                NavigationRequestFactory.entityRandomOrNull(entity),
-                controllerSubmitter, schedulingOptions);
-    }
-
-    /**
-     * Submits straight to the service, bypassing the bounded admission layer
-     * that {@link NavigationSystem}-owned controllers are given.
-     */
-    private EntityNavigationController(Entity entity,
-                                       AsyncEntityPathfindingService service,
-                                       NavigationProfile profile,
-                                       double movementPerTick,
-                                       boolean refreshBuiltinProfile,
-                                       MovementExecutionMode movementExecutionMode,
-                                       RandomGenerator startNodeRandom) {
-        this(entity, service, profile, movementPerTick, refreshBuiltinProfile,
-                movementExecutionMode, startNodeRandom,
-                (key, request, priority) -> service.submitLatest(key, request),
-                ControllerSchedulingOptions.direct(service.parallelism()));
-    }
-
-    private EntityNavigationController(Entity entity,
-                                       AsyncEntityPathfindingService service,
-                                       NavigationProfile profile,
-                                       double movementPerTick,
-                                       boolean refreshBuiltinProfile,
-                                       MovementExecutionMode movementExecutionMode,
-                                       RandomGenerator startNodeRandom,
-                                       ControllerRequestSubmitter controllerSubmitter,
-                                       ControllerSchedulingOptions schedulingOptions) {
-        if (entity == null || service == null || profile == null
+    EntityNavigationController(Entity entity,
+                               NavigationMetrics metrics,
+                               NavigationProfile profile,
+                               double movementPerTick,
+                               boolean refreshBuiltinProfile,
+                               MovementExecutionMode movementExecutionMode,
+                               RandomGenerator startNodeRandom,
+                               ControllerRequestSubmitter submitter,
+                               ControllerSchedulingOptions schedulingOptions) {
+        if (entity == null || metrics == null || profile == null
                 || movementExecutionMode == null
-                || startNodeRandom == null || controllerSubmitter == null
+                || startNodeRandom == null || submitter == null
                 || schedulingOptions == null
                 || !Double.isFinite(movementPerTick) || movementPerTick <= 0) {
             throw new IllegalArgumentException("invalid controller arguments");
@@ -192,69 +149,17 @@ public class EntityNavigationController implements AutoCloseable {
         this.entity = entity;
         this.refreshBuiltinProfile = refreshBuiltinProfile;
         this.movementExecutionMode = movementExecutionMode;
-        this.metrics = service.metrics();
+        this.metrics = metrics;
         this.schedulingOptions = schedulingOptions;
         this.progress = new ProgressMonitor(movementPerTick);
-        NavigationRequestFactory requests = new NavigationRequestFactory(
+        this.requests = new NavigationRequestFactory(
                 entity, refreshBuiltinProfile, startNodeRandom);
-        this.pathSubmitter = (key, instance, start, destination, box,
-                              influences, modifiers) -> {
-            NavigationProfile effective = snapshotDynamicTerrain(
-                    modifiers.applyTo(currentBaseProfile()));
-            NavigationRequest request = requests.build(
-                    effective, instance, start, destination, box, influences,
-                    replanner.searchRangeMultiplier(), geometry.isEntityInWater());
-            return controllerSubmitter.submit(
-                    key, request, routeExhausted() ? 100 : 10);
-        };
+        this.submitter = submitter;
         this.navigationProfile = profile;
         this.activeNavigationProfile = profile;
         this.movementPerTick = movementPerTick;
         this.wallClimberFallback =
                 profile.mode() == NavigationMode.WALL_CLIMBER;
-    }
-
-    /**
-     * Selects the baseline navigation profile for the entity type.
-     */
-    public static EntityNavigationController builtin(
-            Entity entity, AsyncEntityPathfindingService service,
-            double movementPerTick) {
-        return builtin(entity, service, movementPerTick,
-                NavigationRequestFactory.entityRandomOrNull(entity));
-    }
-
-    /**
-     * Selects the baseline profile while sampling small-flyer starts from the
-     * supplied entity AI random stream.
-     */
-    public static EntityNavigationController builtin(
-            Entity entity, AsyncEntityPathfindingService service,
-            double movementPerTick, RandomGenerator startNodeRandom) {
-        return new EntityNavigationController(entity, service,
-                BuiltinNavigationProfiles.forEntity(entity),
-                movementPerTick, true,
-                MovementExecutionMode.PHYSICS_VELOCITY, startNodeRandom);
-    }
-
-    static EntityNavigationController builtin(
-            Entity entity, AsyncEntityPathfindingService service,
-            double movementPerTick, ControllerRequestSubmitter submitter,
-            ControllerSchedulingOptions options) {
-        return builtin(entity, service, movementPerTick,
-                NavigationRequestFactory.entityRandomOrNull(entity),
-                submitter, options);
-    }
-
-    static EntityNavigationController builtin(
-            Entity entity, AsyncEntityPathfindingService service,
-            double movementPerTick, RandomGenerator random,
-            ControllerRequestSubmitter submitter,
-            ControllerSchedulingOptions options) {
-        return new EntityNavigationController(entity, service,
-                BuiltinNavigationProfiles.forEntity(entity), movementPerTick,
-                true, MovementExecutionMode.PHYSICS_VELOCITY, random,
-                submitter, options);
     }
 
     public void moveTo(Point newTarget) {
@@ -286,27 +191,15 @@ public class EntityNavigationController implements AutoCloseable {
             transition(NavigationState.FAILED);
             return;
         }
-        target = newTarget;
-        travelRequired = !goalReached();
-        targetUnreachable = false;
-        unreachableRecorded = false;
-        waypointRecoveryAttempted = false;
-        routeStop = PathStop.NOT_SEARCHED;
-        activeInfluences = List.copyOf(influences);
-        activeModifiers = modifiers;
-        activeNavigationProfile = snapshotDynamicTerrain(
-                modifiers.applyTo(currentBaseProfile()));
-        if (geometry.movesThroughVolume()) {
-            suppressGravity();
-        }
+        beginNavigation(newTarget, List.copyOf(influences), modifiers,
+                snapshotDynamicTerrain(modifiers.applyTo(currentBaseProfile())));
         // Only moveTo() abandons the route the entity is on and stops the
         // motion that route was driving; follow() keeps both. A route that
         // can still be followed is kept until its replacement lands, so
         // retargeting every tick never leaves the entity standing still.
         if (routeExhausted()) {
             resetRoute();
-            nodes = List.of();
-            nodeIndex = 0;
+            dropRoute();
             stopDrivenMotion();
             transition(NavigationState.COMPUTING);
         } else {
@@ -325,11 +218,7 @@ public class EntityNavigationController implements AutoCloseable {
         if (plan == null || !plan.usable()) {
             throw new IllegalArgumentException("usable plan required");
         }
-        var entityBox = entity.getBoundingBox();
-        var plannedBox = plan.boundingBox();
-        if (Math.abs(entityBox.width() - plannedBox.width()) > 1.0e-6
-                || Math.abs(entityBox.height() - plannedBox.height()) > 1.0e-6
-                || Math.abs(entityBox.depth() - plannedBox.depth()) > 1.0e-6) {
+        if (!sameDimensions(entity.getBoundingBox(), plan.boundingBox())) {
             throw new IllegalArgumentException("plan bounding box does not match entity");
         }
         observeSearchLanding();
@@ -349,20 +238,9 @@ public class EntityNavigationController implements AutoCloseable {
                         "entity is too far from plan start");
             }
         }
-        if (pending != null) pending.cancel(true);
-        pending = null;
-        target = plan.target();
-        travelRequired = !goalReached();
-        targetUnreachable = false;
-        unreachableRecorded = false;
-        waypointRecoveryAttempted = false;
-        // A replayed plan carries a status but no search reason, so the
-        // chaining rules fall back to the terminal radius for it.
-        routeStop = PathStop.NOT_SEARCHED;
-        activeInfluences = List.of();
-        activeModifiers = NavigationModifiers.NONE;
-        activeNavigationProfile = plan.profile();
-        if (geometry.movesThroughVolume()) suppressGravity();
+        cancelPending();
+        beginNavigation(plan.target(), List.of(), NavigationModifiers.NONE,
+                plan.profile());
         generation++;
         if (!spliced) {
             nodes = processed.nodes();
@@ -373,6 +251,45 @@ public class EntityNavigationController implements AutoCloseable {
         }
         transition(plan.status() == PathStatus.FOUND
                 ? NavigationState.FOLLOWING : NavigationState.PARTIAL);
+    }
+
+    /**
+     * Resets everything a new navigation inherits from the last one. The
+     * search reason starts unknown: a replayed plan carries a status but no
+     * reason, so the chaining rules fall back to the terminal radius for it.
+     */
+    private void beginNavigation(Point newTarget,
+                                 List<NavigationInfluence> influences,
+                                 NavigationModifiers modifiers,
+                                 NavigationProfile profile) {
+        target = newTarget;
+        // Judged before the profile changes, against the one being left.
+        travelRequired = !goalReached();
+        targetUnreachable = false;
+        unreachableRecorded = false;
+        waypointRecoveryAttempted = false;
+        routeStop = PathStop.NOT_SEARCHED;
+        activeInfluences = influences;
+        activeModifiers = modifiers;
+        activeNavigationProfile = profile;
+        if (geometry.movesThroughVolume()) suppressGravity();
+    }
+
+    private static boolean sameDimensions(BoundingBox first,
+                                          BoundingBox second) {
+        return Math.abs(first.width() - second.width()) <= 1.0e-6
+                && Math.abs(first.height() - second.height()) <= 1.0e-6
+                && Math.abs(first.depth() - second.depth()) <= 1.0e-6;
+    }
+
+    private void cancelPending() {
+        if (pending != null) pending.cancel(true);
+        pending = null;
+    }
+
+    private void dropRoute() {
+        nodes = List.of();
+        nodeIndex = 0;
     }
 
     private void resetRoute() {
@@ -392,30 +309,23 @@ public class EntityNavigationController implements AutoCloseable {
         // discard their controllers. Never let a late search result or movement
         // command touch Minestom's detached collision state.
         if (entity.isRemoved() || entity.getInstance() == null) {
-            if (pending != null) pending.cancel(true);
-            pending = null;
-            if (state == NavigationState.IDLE) {
-                state = NavigationState.CANCELLED;
-            } else if (state != NavigationState.COMPLETED
-                    && state != NavigationState.CANCELLED
-                    && state != NavigationState.STUCK
-                    && state != NavigationState.FAILED) {
-                transition(NavigationState.CANCELLED);
-            }
+            cancelPending();
+            cancelNavigation();
             return;
         }
         // A landed search is read before anything decides to replace it, so
         // completed work is never discarded on the tick it arrives.
         acceptPending();
+        if (blockChangePending) {
+            blockChangePending = false;
+            if (!routeExhausted()) replanForBlockChange();
+        }
         if (replanRequested) recomputePath(RouteReplanEvent.Reason.SHED_RETRY);
         // Closing runs before the route is followed and outside it, so a
         // manipulated block is still restored once the route ends.
         manipulator.closeBehind(entity.getInstance(),
                 activeNavigationProfile.mobProfile(), entity.getPosition());
-        if (target == null || state == NavigationState.COMPLETED
-                || state == NavigationState.CANCELLED
-                || state == NavigationState.STUCK
-                || state == NavigationState.FAILED) {
+        if (target == null || state.terminal()) {
             restoreGravity();
             stopDrivenMotion();
             return;
@@ -466,9 +376,12 @@ public class EntityNavigationController implements AutoCloseable {
                 activeModifiers.applyTo(currentBaseProfile()));
         generation++;
         replanner.beginSegment(entity.getPosition().distance(destination));
-        pending = pathSubmitter.submit(entity.getUuid(), instance,
-                planningStart(destination), destination,
-                entity.getBoundingBox(), activeInfluences, activeModifiers);
+        NavigationRequest request = requests.build(activeNavigationProfile,
+                instance, planningStart(destination), destination,
+                entity.getBoundingBox(), activeInfluences,
+                replanner.searchRangeMultiplier(), geometry.isEntityInWater());
+        pending = submitter.submit(entity.getUuid(), request,
+                routeExhausted() ? ROUTELESS_PRIORITY : REPLAN_PRIORITY);
         // Keep following the last accepted route while the replacement is
         // computed. If no usable route exists, COMPUTING remains the only
         // meaningful state.
@@ -478,21 +391,12 @@ public class EntityNavigationController implements AutoCloseable {
         }
     }
 
-    /**
-     * Whether the search behind the current request may be replaced. Work in
-     * flight is left alone until the tail this controller's service actually
-     * observes says it will never land, so a chased mob keeps receiving
-     * routes however slow searches become. The tail is read only once the
-     * floor has already elapsed, so the ordinary path costs nothing.
-     */
+    /** Whether the search behind the current request may be replaced. */
     private boolean searchSettledOrAbandoned() {
         if (tick <= lastSubmitTick || tick < shedBackoffUntilTick) return false;
-        if (pending == null) return true;
-        int waited = tick - lastSubmitTick;
-        int minimumStallTicks = schedulingOptions.minimumSearchStallTicks();
-        if (waited < minimumStallTicks) return false;
-        long tail = metrics.snapshot().latency().p99Micros() / MICROS_PER_TICK;
-        return waited >= Math.max(minimumStallTicks, tail * 4);
+        return pending == null || SearchLatency.abandoned(
+                tick - lastSubmitTick,
+                schedulingOptions.minimumSearchStallTicks(), metrics);
     }
 
     /**
@@ -534,8 +438,8 @@ public class EntityNavigationController implements AutoCloseable {
      * search is submitted, so following costs nothing.
      */
     private int observedLatencyTicks() {
-        return splicer.expectedLatencyTicks((int) (metrics.snapshot()
-                .latency().p90Micros() / MICROS_PER_TICK));
+        return splicer.expectedLatencyTicks((int) SearchLatency.ticks(
+                metrics.snapshot().latency().p90Micros()));
     }
 
     /** Records how many ticks the route just applied spent in flight. */
@@ -606,7 +510,7 @@ public class EntityNavigationController implements AutoCloseable {
     }
 
     /** Splice bookkeeping, for tests and operators. */
-    public RouteSplicer.Counts spliceCounts() {
+    public SpliceCounts spliceCounts() {
         return splicer.counts();
     }
 
@@ -616,28 +520,53 @@ public class EntityNavigationController implements AutoCloseable {
 
     /**
      * Requests a recomputation when a changed block is close enough to affect
-     * the unconsumed portion of the current path.
+     * the unconsumed portion of the current path. Call it from the thread
+     * that ticks this controller.
      */
     public void onBlockChanged(Point changedBlock) {
-        if (changedBlock == null || nodes.isEmpty()
-                || nodeIndex >= nodes.size()) return;
-        PathNode end = nodes.getLast();
+        if (changedBlock != null && routeMayCross(changedBlock)) {
+            replanForBlockChange();
+        }
+    }
+
+    /**
+     * The thread-safe form {@link NavigationSystem} uses: the edit may come
+     * from any thread and any instance, so it is only judged here and acted
+     * on by the next {@link #tick()}, which is also where its event fires.
+     */
+    void blockChanged(Instance instance, Point changedBlock) {
+        if (entity.getInstance() == instance && routeMayCross(changedBlock)) {
+            blockChangePending = true;
+        }
+    }
+
+    /**
+     * Whether a block lies near enough to the stretch still to be walked to
+     * matter. Reads only the immutable route and the entity position, so a
+     * stale answer from another thread errs toward a harmless extra replan.
+     */
+    private boolean routeMayCross(Point changedBlock) {
+        List<PathNode> route = nodes;
+        int remaining = route.size() - nodeIndex;
+        if (remaining <= 0) return false;
+        PathNode end = route.getLast();
         Point position = entity.getPosition();
         Point middle = new Vec(
                 (end.x() + position.x()) * 0.5,
                 (end.y() + position.y()) * 0.5,
                 (end.z() + position.z()) * 0.5);
-        double remainingNodes = nodes.size() - nodeIndex;
         Point changedCenter = new Vec(
                 changedBlock.blockX() + 0.5,
                 changedBlock.blockY() + 0.5,
                 changedBlock.blockZ() + 0.5);
-        if (changedCenter.distance(middle) < remainingNodes) {
-            // The changed block may lie on the very stretch a splice would
-            // retain, so this replan starts from the entity itself.
-            spliceSuppressed = true;
-            recomputePath(RouteReplanEvent.Reason.BLOCK_CHANGE);
-        }
+        return changedCenter.distance(middle) < remaining;
+    }
+
+    private void replanForBlockChange() {
+        // The changed block may lie on the very stretch a splice would
+        // retain, so this replan starts from the entity itself.
+        spliceSuppressed = true;
+        recomputePath(RouteReplanEvent.Reason.BLOCK_CHANGE);
     }
 
     private void acceptPending() {
@@ -728,8 +657,7 @@ public class EntityNavigationController implements AutoCloseable {
      */
     private void widenSearchRange() {
         replanner.widen();
-        nodes = List.of();
-        nodeIndex = 0;
+        dropRoute();
         recomputePath(RouteReplanEvent.Reason.PARTIAL_CONTINUATION);
     }
 
@@ -743,19 +671,17 @@ public class EntityNavigationController implements AutoCloseable {
         if (state != NavigationState.PARTIAL
                 || wallClimberFallback || partialContinuationPrefetched
                 || pending != null
-                || replanRequested || target == null || nodes.isEmpty()
-                || nodeIndex >= nodes.size() || pathTruncatedForSun) {
+                || replanRequested || target == null || routeExhausted()
+                || pathTruncatedForSun) {
             return;
         }
         double safetyTail = Math.max(8,
                 (observedLatencyTicks() + 2) * movementPerTick);
         if (remainingRouteDistance() > safetyTail) return;
 
-        PathNode endpoint = nodes.getLast();
-        Point projected = endpoint.asVec();
         partialContinuationPrefetched = true;
         switch (replanner.continueLongPartialRoute(
-                projected, target, nodes, routeStop)) {
+                nodes.getLast().asVec(), target, nodes, routeStop)) {
             case WIDEN -> {
                 replanner.widen();
                 recomputePath(RouteReplanEvent.Reason.PARTIAL_CONTINUATION);
@@ -770,14 +696,7 @@ public class EntityNavigationController implements AutoCloseable {
     }
 
     private double remainingRouteDistance() {
-        double remaining = 0;
-        Point cursor = entity.getPosition();
-        for (int index = nodeIndex; index < nodes.size(); index++) {
-            Point next = nodes.get(index).asVec();
-            remaining += cursor.distance(next);
-            cursor = next;
-        }
-        return remaining;
+        return RouteLength.from(entity.getPosition(), nodes, nodeIndex);
     }
 
     private NavigationState fallbackState(NavigationState terminal) {
@@ -791,10 +710,7 @@ public class EntityNavigationController implements AutoCloseable {
      */
     private void transition(NavigationState next) {
         if (state == next) return;
-        boolean active = switch (state) {
-            case IDLE, COMPUTING, FOLLOWING, PARTIAL -> true;
-            case COMPLETED, STUCK, FAILED, CANCELLED -> false;
-        };
+        boolean active = !state.terminal();
         state = next;
         if (active) metrics.controllerOutcome(next, travelRequired);
         // After the state is published, so a listener reading state() sees the
@@ -840,8 +756,7 @@ public class EntityNavigationController implements AutoCloseable {
                 waypointRecoveryAttempted = true;
                 splicer.disarm();
                 spliceSuppressed = true;
-                nodes = List.of();
-                nodeIndex = 0;
+                dropRoute();
                 resetRoute();
                 stopDrivenMotion();
                 transition(NavigationState.COMPUTING);
@@ -963,16 +878,16 @@ public class EntityNavigationController implements AutoCloseable {
     }
 
     private boolean goalReached() {
-        double tolerance = geometry.alwaysMovesThroughVolume() ? 0.7 : 0.5;
-        Point effectiveTarget = target;
-        if (target != null && geometry.alwaysMovesThroughVolume()) {
-            effectiveTarget = new Vec(
-                    Math.floor(target.x()) + 0.5,
-                    Math.floor(target.y()),
-                    Math.floor(target.z()) + 0.5);
-        }
-        return effectiveTarget != null && entity.getPosition().distance(effectiveTarget)
-                <= Math.max(tolerance, entity.getBoundingBox().width() / 2);
+        if (target == null) return false;
+        // A volume navigator is steered to its target cell's bottom centre.
+        boolean volume = geometry.alwaysMovesThroughVolume();
+        Point goal = volume
+                ? new Vec(Math.floor(target.x()) + 0.5, Math.floor(target.y()),
+                        Math.floor(target.z()) + 0.5)
+                : target;
+        double tolerance = Math.max(volume ? 0.7 : 0.5,
+                entity.getBoundingBox().width() / 2);
+        return entity.getPosition().distance(goal) <= tolerance;
     }
 
     private NavigationProfile currentBaseProfile() {
@@ -995,7 +910,7 @@ public class EntityNavigationController implements AutoCloseable {
     }
 
     private void emit(Class<? extends NavigationEvent> type,
-                      java.util.function.Supplier<NavigationEvent> event) {
+                      Supplier<NavigationEvent> event) {
         if (events.listening(type)) events.emit(event.get());
     }
 
@@ -1015,8 +930,12 @@ public class EntityNavigationController implements AutoCloseable {
      * reach the goal from where the entity stands and the caller should pick
      * another one, while {@link NavigationState#STUCK} means the entity is
      * physically wedged on a route it was given. It is only proof of
-     * unreachability when the search emptied its frontier; otherwise it is the
-     * planner declining to spend another bounded segment on this target.
+     * unreachability when {@link #routeStop()} reads
+     * {@link PathStop#FRONTIER_EXHAUSTED}; otherwise it is the planner
+     * declining to spend another bounded segment on this target. In
+     * particular {@link PathStop#TERRAIN_UNLOADED} means the route ran into
+     * chunks that are not loaded: call {@link #moveTo(Point)} again once they
+     * are.
      *
      * <p>Cleared by {@link #moveTo(Point)}, by {@link #follow(NavigationPlan)},
      * and by any route that lands afterwards.</p>
@@ -1051,13 +970,29 @@ public class EntityNavigationController implements AutoCloseable {
         return nodes;
     }
 
+    /**
+     * Abandons any search in flight and restores gravity. A navigation still
+     * in progress ends {@link NavigationState#CANCELLED}; one that already
+     * completed, stalled, or failed keeps that outcome.
+     */
     @Override
     public void close() {
-        if (pending != null) pending.cancel(true);
+        cancelPending();
         restoreGravity();
-        // A controller closed before it ever navigated has no outcome.
-        if (state == NavigationState.IDLE) state = NavigationState.CANCELLED;
-        else transition(NavigationState.CANCELLED);
+        cancelNavigation();
+    }
+
+    /**
+     * Ends the navigation in progress as cancelled. A controller that never
+     * navigated has no outcome to report, and one whose navigation already
+     * finished keeps the outcome it reported.
+     */
+    private void cancelNavigation() {
+        if (state == NavigationState.IDLE) {
+            state = NavigationState.CANCELLED;
+        } else if (!state.terminal()) {
+            transition(NavigationState.CANCELLED);
+        }
     }
 
     private final class ControllerMovementContext implements MovementContext {

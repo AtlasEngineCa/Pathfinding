@@ -4,7 +4,6 @@ import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.result.PathNode;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -84,7 +83,7 @@ class EveryBuiltinMobE2ETest {
         TrackedCreature mob = new TrackedCreature(type);
         mob.setInstance(instance, start).join();
         EntityNavigationController controller =
-                new EntityNavigationController(mob, service, profile, 0.2);
+                TestWorlds.controller(mob, service, profile, 0.2);
         mob.controller = controller;
         controller.moveTo(goal);
 
@@ -183,7 +182,6 @@ class EveryBuiltinMobE2ETest {
                 instance.setBlock(x, 40, z, lowerSlab);
             }
         }
-
     }
 
     private static void assertNonTrivialRoute(
@@ -225,9 +223,7 @@ class EveryBuiltinMobE2ETest {
     }
 
     private static Instance prepared(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 5,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 5);
         return instance;
     }
 

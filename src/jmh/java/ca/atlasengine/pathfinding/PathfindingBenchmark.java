@@ -1,9 +1,20 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.block.Block;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -127,10 +138,27 @@ public class PathfindingBenchmark {
         return checksum;
     }
 
+    /**
+     * A default-mob ground search between two exact cells, with the budget
+     * of eight expansions per node of path length used throughout.
+     */
+    static NavigationRequest groundRequest(World world, Pos start, Pos target,
+                                           BoundingBox box, double maxLength) {
+        NavigationProfile ground = NavigationProfile.builder(
+                        NavigationMode.GROUND, MobTraversalProfile.DEFAULT,
+                        GroundCapabilities.STANDARD)
+                .pathToTargetsBelowSurface(true)
+                .build();
+        return NavigationRequest.builder(world, start, target, box, ground)
+                .maxPathLength(maxLength)
+                .maxVisitedMultiplier(8)
+                .build();
+    }
+
     @State(Scope.Benchmark)
     public static class OpenGround {
         final World world = World.flat(-4, 516, -4, 4);
-        final DiscreteGroundPathfinder engine = new DiscreteGroundPathfinder();
+        final EntityPathfinder engine = new EntityPathfinder();
         final Pos start = new Pos(0.5, 1, 0.5);
         final Pos target = new Pos(512.5, 1, 0.5);
         final Vec targetVector = target.asVec();
@@ -138,7 +166,9 @@ public class PathfindingBenchmark {
         int expectedChecksum;
 
         PathResult search() {
-            return engine.findPath(world, start, target, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(520).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+            return engine.findPath(
+                    groundRequest(world, start, target, box, 520),
+                    SearchControl.NONE);
         }
 
         @Setup(Level.Trial)
@@ -155,7 +185,7 @@ public class PathfindingBenchmark {
     @State(Scope.Benchmark)
     public static class AlternatingWalls {
         final World world = World.flat(-4, 260, -24, 24);
-        final DiscreteGroundPathfinder engine = new DiscreteGroundPathfinder();
+        final EntityPathfinder engine = new EntityPathfinder();
         final Pos start = new Pos(0.5, 1, 0.5);
         final Pos targetPosition = new Pos(256.5, 1, 0.5);
         final Vec target = targetPosition.asVec();
@@ -164,7 +194,9 @@ public class PathfindingBenchmark {
         int expectedChecksum;
 
         PathResult search() {
-            return engine.findPath(world, start, targetPosition, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(400).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+            return engine.findPath(
+                    groundRequest(world, start, targetPosition, box, 400),
+                    SearchControl.NONE);
         }
 
         @Setup(Level.Trial)
@@ -209,7 +241,8 @@ public class PathfindingBenchmark {
                     }
                 }
             }
-            NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+            NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND,
+                    MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).build();
             request = NavigationRequest.builder(
                             world, start, targetPosition, box, profile)
                     .maxPathLength(400)
@@ -239,7 +272,8 @@ public class PathfindingBenchmark {
                     for (int z = -3; z <= 3; z++) world.set(x, y, z, Block.STONE);
                 }
             }
-            NavigationProfile profile = NavigationProfile.builder(NavigationMode.FLYING, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+            NavigationProfile profile = NavigationProfile.builder(NavigationMode.FLYING,
+                    MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).build();
             request = NavigationRequest.builder(world,
                             new Vec(0.5, 0.5, 0.5), target,
                             new BoundingBox(0.6, 0.6, 0.6), profile)
@@ -269,9 +303,10 @@ public class PathfindingBenchmark {
             }
             NavigationProfile base = BuiltinNavigationProfiles
                     .forEntityType(
-                    net.minestom.server.entity.EntityType.ZOMBIE);
-            NavigationProfile climbing = NavigationProfile.builder(base.mode(), base.mobProfile(), base.groundCapabilities().withClimbables(
-                            ClimbableCapabilities.STANDARD)).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+                    EntityType.ZOMBIE);
+            NavigationProfile climbing = base.withGroundCapabilities(
+                    base.groundCapabilities().withClimbables(
+                            ClimbableCapabilities.STANDARD));
             request = NavigationRequest.builder(world,
                             new Pos(0.5, 1, 0.5),
                             new Pos(1.5, 33, 0.5),

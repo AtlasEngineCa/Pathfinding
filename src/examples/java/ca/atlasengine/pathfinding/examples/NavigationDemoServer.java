@@ -1,9 +1,9 @@
 package ca.atlasengine.pathfinding.examples;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import ca.atlasengine.pathfinding.NavigationSystem;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.Auth;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;

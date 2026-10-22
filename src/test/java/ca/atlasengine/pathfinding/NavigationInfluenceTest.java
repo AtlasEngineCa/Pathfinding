@@ -1,13 +1,21 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.CancellationToken;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
+import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
 import ca.atlasengine.pathfinding.influence.InfluenceResult;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.ReturnRadiusInfluence;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.CancellationToken;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.coordinate.Vec;
+import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +58,7 @@ class NavigationInfluenceTest {
         NavigationRequest request = NavigationRequest.builder(
                         world, new Pos(0.5, 1, 0.5), new Pos(10.5, 1, 0.5), BOX,
                         BuiltinNavigationProfiles.forEntityType(
-                                net.minestom.server.entity.EntityType.ZOMBIE))
+                                EntityType.ZOMBIE))
                 .maxPathLength(30)
                 .maxVisitedMultiplier(8)
                 .influences(List.of(zone))
@@ -73,7 +81,7 @@ class NavigationInfluenceTest {
         NavigationInfluence boundary =
                 new ReturnRadiusInfluence(home, outside, 32);
         NavigationProfile zombie = BuiltinNavigationProfiles.forEntityType(
-                net.minestom.server.entity.EntityType.ZOMBIE);
+                EntityType.ZOMBIE);
 
         PathResult outward = new EntityPathfinder().findPath(
                 NavigationRequest.builder(

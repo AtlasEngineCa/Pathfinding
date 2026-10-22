@@ -1,6 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.coordinate.Pos;
@@ -22,8 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class GroundShapeClearanceTest {
     private static final BoundingBox STANDARD =
             new BoundingBox(0.6, 1.8, 0.6);
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     @Test
     void zombieWidthFitsOneCellLedgeBetweenWaterAndTwoHighWall() {
@@ -228,7 +230,7 @@ class GroundShapeClearanceTest {
             Vec start = previous.asVec().add(0, 1.0e-5, 0);
             Vec end = current.asVec().add(0, 1.0e-5, 0);
             var physics = CollisionUtils.handlePhysics(
-                    world, box, start.asPos(), end.sub(start).asVec(),
+                    world, box, start.asPos(), end.sub(start),
                     null, false);
             assertFalse(physics.collisionX() || physics.collisionY()
                             || physics.collisionZ(),
@@ -238,7 +240,8 @@ class GroundShapeClearanceTest {
 
     private PathResult find(TestWorld world, Pos start, Pos goal,
                             BoundingBox box, double maxLength) {
-        return pathfinder.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(maxLength).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, maxLength,
+                8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static TestWorld flat() {

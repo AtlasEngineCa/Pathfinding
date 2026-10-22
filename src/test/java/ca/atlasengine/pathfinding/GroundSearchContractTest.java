@@ -1,6 +1,16 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.CancellationToken;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.CancellationToken;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -26,12 +36,10 @@ class GroundSearchContractTest {
             new BoundingBox(0.6, 1.8, 0.6);
     private static final double MAX_LENGTH = 32;
     private static final double VISITED_MULTIPLIER = 8;
-    /** {@link DiscreteGroundPathfinder}'s derived expansion budget. */
+    /** The expansion budget a ground search derives from these limits. */
     private static final int VISITED_BUDGET = (int) (Math.floor(
             Math.max(16, MAX_LENGTH) * 16) * VISITED_MULTIPLIER);
 
-    private final DiscreteGroundPathfinder pathfinder =
-            new DiscreteGroundPathfinder();
 
     /**
      * A goal walled off on every side cannot be reached. The discrete search
@@ -81,7 +89,9 @@ class GroundSearchContractTest {
         SearchControl expired = new SearchControl(
                 CancellationToken.NONE, System.nanoTime() - 1);
 
-        PathResult result = pathfinder.findPath(expiredWorld, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(MAX_LENGTH).reachRange(0).maxVisitedMultiplier(VISITED_MULTIPLIER).build(), GroundCapabilities.STANDARD, expired);
+        PathResult result = GroundSearches.find(expiredWorld, new Pos(0.5, 1, 0.5),
+                new Pos(5.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, MAX_LENGTH,
+                VISITED_MULTIPLIER, GroundCapabilities.STANDARD, expired);
 
         assertEquals(PathStatus.TIMED_OUT, result.status());
         assertEquals(0, result.visitedNodes());
@@ -124,22 +134,19 @@ class GroundSearchContractTest {
     }
 
     /**
-     * One {@link EntityPathfinder} and one {@link DiscreteGroundPathfinder}
-     * serve sixty-four searches across eight threads. Neither holds
-     * search-scoped state, so every concurrent answer equals the answer the
-     * same instance gives alone.
+     * One {@link EntityPathfinder} serves sixty-four searches across eight
+     * threads. It holds no search-scoped state, so every concurrent answer
+     * equals the answer the same instance gives alone.
      */
     @Test
     void onePathfinderInstanceServesManyConcurrentSearches() throws Exception {
         TestWorld world = flat();
         EntityPathfinder entityPathfinder = new EntityPathfinder();
-        DiscreteGroundPathfinder discrete = new DiscreteGroundPathfinder();
         NavigationProfile zombie =
                 BuiltinNavigationProfiles.forEntityType(EntityType.ZOMBIE);
         List<PathResult> sequential = new ArrayList<>();
         for (int lane = -8; lane < 8; lane++) {
             sequential.add(entityRun(entityPathfinder, zombie, world, lane));
-            sequential.add(discreteRun(discrete, world, lane));
         }
 
         try (var executor = Executors.newFixedThreadPool(8)) {
@@ -148,13 +155,12 @@ class GroundSearchContractTest {
                 int lane = i % 16 - 8;
                 tasks.add(() -> entityRun(
                         entityPathfinder, zombie, world, lane));
-                tasks.add(() -> discreteRun(discrete, world, lane));
             }
             List<PathResult> observed = new ArrayList<>();
             for (var future : executor.invokeAll(tasks)) {
                 observed.add(future.get());
             }
-            assertEquals(128, observed.size());
+            assertEquals(64, observed.size());
             for (int i = 0; i < observed.size(); i++) {
                 PathResult actual = observed.get(i);
                 PathResult reference = sequential.get(i % sequential.size());
@@ -197,7 +203,7 @@ class GroundSearchContractTest {
         assertTrue(result.found());
         assertThrows(UnsupportedOperationException.class,
                 () -> result.nodes().add(
-                        new PathNode(0, 0, 0, PathNode.Movement.WALK)));
+                        new PathNode(0, 0, 0, PathNode.Movement.WALK, 0, 0, 0)));
         assertThrows(UnsupportedOperationException.class,
                 () -> result.nodes().clear());
         assertThrows(UnsupportedOperationException.class,
@@ -205,28 +211,32 @@ class GroundSearchContractTest {
     }
 
     /**
-     * A non-finite endpoint is a caller error, not a search: it is reported
-     * before the world is touched and before the budget is validated.
+     * A non-finite endpoint is a caller error, not a search: the request
+     * refuses it before the world is touched, as it does a zero budget.
      */
     @Test
     void nonFiniteEndpointsAreRejectedBeforeAnyWorldRead() {
         TestWorld world = flat();
 
-        assertEquals(PathStatus.INVALID_REQUEST,
-                find(world, new Pos(Double.NaN, 1, 0.5),
-                        new Pos(2.5, 1, 0.5), STANDARD).status());
-        assertEquals(PathStatus.INVALID_REQUEST,
-                find(world, new Pos(0.5, 1, 0.5),
+        assertThrows(IllegalArgumentException.class,
+                () -> find(world, new Pos(Double.NaN, 1, 0.5),
+                        new Pos(2.5, 1, 0.5), STANDARD));
+        assertThrows(IllegalArgumentException.class,
+                () -> find(world, new Pos(0.5, 1, 0.5),
                         new Pos(2.5, Double.POSITIVE_INFINITY, 0.5),
-                        STANDARD).status());
+                        STANDARD));
         assertEquals(0, world.reads());
         assertThrows(IllegalArgumentException.class,
-                () -> pathfinder.findPath(world, new Pos(0.5, 1, 0.5), new Pos(2.5, 1, 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(MAX_LENGTH).reachRange(0).maxVisitedMultiplier(0).build(), GroundCapabilities.STANDARD, SearchControl.NONE));
+                () -> GroundSearches.find(world, new Pos(0.5, 1, 0.5),
+                        new Pos(2.5, 1, 0.5), STANDARD,
+                        MobTraversalProfile.DEFAULT, MAX_LENGTH, 0,
+                        GroundCapabilities.STANDARD, SearchControl.NONE));
     }
 
     private PathResult find(TestWorld world, Pos start, Pos goal,
                             BoundingBox box) {
-        return pathfinder.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(MAX_LENGTH).reachRange(0).maxVisitedMultiplier(VISITED_MULTIPLIER).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, MAX_LENGTH,
+                VISITED_MULTIPLIER, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static PathResult entityRun(
@@ -239,11 +249,6 @@ class GroundSearchContractTest {
                         .maxVisitedMultiplier(VISITED_MULTIPLIER)
                         .build(),
                 SearchControl.NONE);
-    }
-
-    private static PathResult discreteRun(
-            DiscreteGroundPathfinder pathfinder, TestWorld world, int lane) {
-        return pathfinder.findPath(world, new Pos(-10.5, 1, lane + 0.5), new Pos(10.5, 1, lane + 0.5), STANDARD, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(MAX_LENGTH).reachRange(0).maxVisitedMultiplier(VISITED_MULTIPLIER).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static TestWorld flat() {

@@ -1,8 +1,16 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationArea;
+import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.ReturnRadiusInfluence;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -18,10 +26,13 @@ class AdversarialConfigurationTest {
     @Test
     void verticalCapabilitiesHaveFiniteWorkBounds() {
         assertThrows(IllegalArgumentException.class,
-                () -> GroundCapabilities.builder().maxStepHeight(17).maxFallDistance(5).allowDiagonal(true).build());
+                () -> GroundCapabilities.builder().maxStepHeight(17).build());
         assertThrows(IllegalArgumentException.class,
-                () -> GroundCapabilities.builder().maxStepHeight(1).maxFallDistance(1025).allowDiagonal(true).build());
-        GroundCapabilities.builder().maxStepHeight(GroundCapabilities.MAX_STEP_HEIGHT).maxFallDistance(GroundCapabilities.MAX_FALL_DISTANCE).allowDiagonal(true).build();
+                () -> GroundCapabilities.builder().maxFallDistance(1025).build());
+        GroundCapabilities.builder()
+                .maxStepHeight(GroundCapabilities.MAX_STEP_HEIGHT)
+                .maxFallDistance(GroundCapabilities.MAX_FALL_DISTANCE)
+                .build();
     }
 
     @Test

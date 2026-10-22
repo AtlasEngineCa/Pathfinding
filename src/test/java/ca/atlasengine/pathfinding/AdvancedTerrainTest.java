@@ -1,6 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.instance.block.Block;
@@ -10,7 +14,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AdvancedTerrainTest {
-    private final DiscreteGroundPathfinder engine = new DiscreteGroundPathfinder();
 
     @ParameterizedTest
     @ValueSource(doubles = {0.4, 0.8, 1.4})
@@ -51,7 +54,8 @@ class AdvancedTerrainTest {
 
     private PathResult find(TestWorld world, Pos start, Pos goal,
                             BoundingBox box, double maxLength) {
-        return engine.findPath(world, start, goal, box, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(maxLength).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD, SearchControl.NONE);
+        return GroundSearches.find(world, start, goal, box, MobTraversalProfile.DEFAULT, maxLength,
+                8, GroundCapabilities.STANDARD, SearchControl.NONE);
     }
 
     private static TestWorld flat(int radius) {

@@ -1,4 +1,4 @@
-package ca.atlasengine.pathfinding.internal;
+package ca.atlasengine.pathfinding;
 
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
@@ -7,7 +7,13 @@ import net.minestom.server.entity.Entity;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 
-/** Target projections used when navigating toward another entity. */
+/**
+ * Where to send a mob that is chasing another entity.
+ *
+ * <p>An entity's raw position is a poor destination: a target sneaking over an
+ * edge stands above empty air. Pass {@link #supportedPosition(Entity)} to
+ * {@link EntityNavigationController#moveTo} instead.</p>
+ */
 public final class EntityTargets {
     private static final double CONTACT_EPSILON = 1.0e-4;
 

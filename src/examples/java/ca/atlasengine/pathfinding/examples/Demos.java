@@ -1,26 +1,26 @@
 package ca.atlasengine.pathfinding.examples;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
-import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
-import ca.atlasengine.pathfinding.profile.NavigationMode;
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.EntityTargets;
 import ca.atlasengine.pathfinding.NavigationSystem;
-import ca.atlasengine.pathfinding.internal.EntityTargets;
-import ca.atlasengine.pathfinding.result.PathResult;
-import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshStatus;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainClassification;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -165,7 +165,8 @@ public final class Demos {
         GroundCapabilities body = GroundCapabilities.STANDARD
                 .withPlatformJump(PlatformJumpCapabilities.acrossGaps(1));
 
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, courier, body).allowBreaching(false).prefersShallowWater(// allowBreaching
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, courier,
+                body).prefersShallowWater(// allowBreaching
                 false).avoidSun(// prefersShallowWater
                 false).build();  // avoidSun
 

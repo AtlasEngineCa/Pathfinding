@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.search;
 
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -72,8 +73,7 @@ final class ClearanceProbe {
         double dy = target.y - startPosition.y() + box.height() / 2;
         double dz = target.z - startPosition.z() + box.depth() / 2;
         double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        double averageSize = (box.width() + box.height() + box.depth()) / 3;
-        int steps = (int) Math.ceil(length / averageSize);
+        int steps = (int) Math.ceil(length / Footprint.meanExtent(box));
         if (steps <= 0) return true;
         Vec delta = new Vec(dx / steps, dy / steps, dz / steps);
         Point position = startPosition;
@@ -102,8 +102,8 @@ final class ClearanceProbe {
     private boolean sweepHitsPanel(SearchNode from, SearchNode to) {
         double halfWidth = box.width() / 2;
         double halfDepth = box.depth() / 2;
-        double centerX = GroundNodeEvaluator.footprintWidth(box) * 0.5;
-        double centerZ = GroundNodeEvaluator.footprintDepth(box) * 0.5;
+        double centerX = Footprint.width(box) * 0.5;
+        double centerZ = Footprint.depth(box) * 0.5;
         double minX = Math.min(from.x, to.x) + centerX - halfWidth;
         double maxX = Math.max(from.x, to.x) + centerX + halfWidth;
         double minZ = Math.min(from.z, to.z) + centerZ - halfDepth;

@@ -1,6 +1,16 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.TerrainType;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -144,7 +154,12 @@ class NavigationModifiersTest {
     @Test
     void modifierCopiesAndValidatesInput() {
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(1).maxDrop(2).apexClearance(1).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(3)
+                        .maxRise(1)
+                        .maxDrop(2)
+                        .apexClearance(1)
+                        .build();
         NavigationModifiers modifier = NavigationModifiers.builder()
                 .terrainCost(TerrainType.LAVA, 3)
                 .canFloat(true)

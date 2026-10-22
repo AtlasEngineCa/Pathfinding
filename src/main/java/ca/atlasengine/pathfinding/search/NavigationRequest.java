@@ -1,13 +1,17 @@
 package ca.atlasengine.pathfinding.search;
 
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.internal.search.GroundSearchSpec;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.instance.block.Block;
 
 import java.util.List;
 import java.util.Objects;
+
 import static ca.atlasengine.pathfinding.internal.Points.finite;
 
 /**
@@ -50,7 +54,6 @@ public record NavigationRequest(
         influences = List.copyOf(influences);
     }
 
-
     private static boolean valid(BoundingBox box) {
         return finite(box.relativeStart()) && finite(box.relativeEnd())
                 && box.width() > 0 && box.height() > 0 && box.depth() > 0
@@ -61,10 +64,8 @@ public record NavigationRequest(
     }
 
     private static long footprintCells(BoundingBox box) {
-        long width = Math.max(1, (long) Math.floor(box.width() + 1));
-        long height = Math.max(1, (long) Math.floor(box.height() + 1));
-        long depth = Math.max(1, (long) Math.floor(box.depth() + 1));
-        return width * height * depth;
+        return (long) Footprint.width(box) * Footprint.height(box)
+                * Footprint.depth(box);
     }
 
     /**
@@ -77,6 +78,22 @@ public record NavigationRequest(
             Block.Getter blocks, Point start, Point target,
             BoundingBox boundingBox, NavigationProfile profile) {
         return new Builder(blocks, start, target, boundingBox, profile);
+    }
+
+    /**
+     * Node expansions this request may spend: sixteen per block of node search
+     * range, scaled by the visit multiplier.
+     */
+    int maxVisitedNodes() {
+        return (int) (Math.floor(nodeSearchRange * 16) * maxVisitedMultiplier);
+    }
+
+    /** The same request reading the world through another getter. */
+    NavigationRequest withBlocks(Block.Getter view) {
+        return view == blocks ? this : new NavigationRequest(
+                view, start, target, boundingBox, profile, maxPathLength,
+                reachRange, maxVisitedMultiplier, influences, seaLevel,
+                entityState, nodeSearchRange);
     }
 
     public NavigationRequest withModifiers(NavigationModifiers modifiers) {

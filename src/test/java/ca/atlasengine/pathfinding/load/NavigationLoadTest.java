@@ -1,21 +1,22 @@
 package ca.atlasengine.pathfinding.load;
 
-import ca.atlasengine.pathfinding.AsyncEntityPathfindingService;import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
-import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.AsyncEntityPathfindingService;
+import ca.atlasengine.pathfinding.NavigationPlanCache;
 import ca.atlasengine.pathfinding.NavigationState;
 import ca.atlasengine.pathfinding.NavigationSystem;
-import ca.atlasengine.pathfinding.result.PathResult;
 import ca.atlasengine.pathfinding.TestWorld;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
-import ca.atlasengine.pathfinding.NavigationPlanCache;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshRequest;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
 import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
@@ -736,7 +737,13 @@ class NavigationLoadTest {
                                     BuiltinNavigationProfiles.forEntityType(
                                             EntityType.ZOMBIE))
                             .maxPathLength(32).nodeSearchRange(32).build();
-                    SharedMeshHandle handle = system.sharedMesh().plan(SharedMeshRequest.builder(request).actor("actor-" + region + "-" + tick).target("target-" + region).worldRevision(1).currentTick(tick).build());
+                    SharedMeshHandle handle = system.sharedMesh().plan(
+                            SharedMeshRequest.builder(request)
+                                    .actor("actor-" + region + "-" + tick)
+                                    .target("target-" + region)
+                                    .worldRevision(1)
+                                    .currentTick(tick)
+                                    .build());
                     if (handle.source()
                             == SharedMeshSource.UNTRACKED_FALLBACK) {
                         untracked++;
@@ -791,7 +798,12 @@ class NavigationLoadTest {
                                 EntityType.ZOMBIE))
                 .maxPathLength(512).nodeSearchRange(512).build();
         for (int index = 0; index < 8; index++) {
-            system.sharedMesh().plan(SharedMeshRequest.builder(request).actor("actor-" + index).target("target").worldRevision(1).currentTick(index).build())
+            system.sharedMesh().plan(SharedMeshRequest.builder(request)
+                    .actor("actor-" + index)
+                    .target("target")
+                    .worldRevision(1)
+                    .currentTick(index)
+                    .build())
                     .plan().exceptionally(failure -> null);
         }
         assertTrue(livePathfindingThreads() > 0,

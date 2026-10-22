@@ -1,12 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshRetention;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.influence.AllowedNavigationAreas;
 import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
 import ca.atlasengine.pathfinding.influence.EntityFearInfluence;
@@ -16,6 +14,19 @@ import ca.atlasengine.pathfinding.influence.NavigationArea;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
 import ca.atlasengine.pathfinding.influence.ReturnRadiusInfluence;
+import ca.atlasengine.pathfinding.internal.adaptive.NavigationPlanParity;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Pos;
@@ -259,7 +270,7 @@ class AdaptiveMeshDifferentialTest {
                                 .promotionRequests(2 + random.nextInt(3))
                                 .retentionRequests(1)
                                 .maximumRegions(maximumRegions)
-                                .build());
+                                .build(), new NavigationMetrics());
         List<Pos> chosen = pick(
                 new ArrayList<>(scenario.candidates), ACTORS, random);
         // One footprint for the whole population, so the traversal snapshot is
@@ -326,7 +337,7 @@ class AdaptiveMeshDifferentialTest {
                                 // with every position can overflow it.
                                 .maximumTargetsPerRegion(
                                         PURSUIT_TARGET_CELLS * 2)
-                                .build());
+                                .build(), new NavigationMetrics());
         List<Pos> cells = pick(new ArrayList<>(scenario.candidates),
                 PURSUIT_TARGET_CELLS, random);
         List<Pos> stations = pick(new ArrayList<>(scenario.candidates),
@@ -384,7 +395,7 @@ class AdaptiveMeshDifferentialTest {
                                                     SearchControl.NONE))),
                             SharedMeshPolicy.builder()
                                     .promotionRequests(2).retentionRequests(1)
-                                    .build());
+                                    .build(), new NavigationMetrics());
             List<SharedMeshHandle> handles = new ArrayList<>();
             long tick = 0;
             try {
@@ -467,7 +478,7 @@ class AdaptiveMeshDifferentialTest {
                                                 SearchControl.NONE))),
                         SharedMeshPolicy.builder()
                                 .promotionRequests(2).retentionRequests(1)
-                                .build());
+                                .build(), new NavigationMetrics());
         Pos start = new Pos(0.5, 1, 0.5);
         Pos target = new Pos(10.5, 1, 0.5);
         NavigationRequest first = request(world, start, target,
@@ -526,7 +537,7 @@ class AdaptiveMeshDifferentialTest {
                     return CompletableFuture.completedFuture(
                             NavigationPlan.from(submitted, oracle.findPath(
                                     submitted, SearchControl.NONE)));
-                }, config);
+                }, config, new NavigationMetrics());
         List<SharedMeshHandle> handles = new ArrayList<>();
         long tick = 0;
         try {
@@ -898,13 +909,18 @@ class AdaptiveMeshDifferentialTest {
                                 ClimbableCapabilities.STANDARD));
                 case JUMP -> withGround(base,
                         base.groundCapabilities().withPlatformJump(
-                                PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(1).maxDrop(1).apexClearance(1).build()));
+                                PlatformJumpCapabilities.builder()
+                                        .maxHorizontalDistance(3)
+                                        .maxRise(1)
+                                        .maxDrop(1)
+                                        .apexClearance(1)
+                                        .build()));
             };
         }
 
         private static NavigationProfile withGround(
                 NavigationProfile base, GroundCapabilities capabilities) {
-            return NavigationProfile.builder(base.mode(), base.mobProfile(), capabilities).allowBreaching(base.allowBreaching()).prefersShallowWater(base.prefersShallowWater()).avoidSun(base.avoidSun()).directPathIgnoresFluids(base.directPathIgnoresFluids()).pathToTargetsBelowSurface(base.pathToTargetsBelowSurface()).build();
+            return base.withGroundCapabilities(capabilities);
         }
     }
 

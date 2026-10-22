@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding.internal.adaptive;
 
-import ca.atlasengine.pathfinding.search.EntityPathfinder;import net.minestom.server.coordinate.Point;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 
 /**

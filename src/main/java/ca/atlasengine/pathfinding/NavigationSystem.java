@@ -1,22 +1,28 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshNavigation;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
-import net.minestom.server.coordinate.Point;
-import net.minestom.server.entity.Entity;
-
-import net.minestom.server.event.EventListener;
-import net.minestom.server.event.instance.InstanceBlockUpdateEvent;
-import net.minestom.server.instance.Instance;
 import ca.atlasengine.pathfinding.event.NavigationEvent;
 import ca.atlasengine.pathfinding.event.NavigationEventSink;
+import ca.atlasengine.pathfinding.internal.movement.NavigationRequestFactory;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.metrics.NavigationMetricsSnapshot;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import net.minestom.server.coordinate.Point;
+import net.minestom.server.entity.Entity;
 import net.minestom.server.event.EventFilter;
+import net.minestom.server.event.EventListener;
 import net.minestom.server.event.EventNode;
+import net.minestom.server.event.instance.InstanceBlockUpdateEvent;
+import net.minestom.server.instance.Instance;
+
 import java.util.Collections;
-import java.util.WeakHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.random.RandomGenerator;
 
@@ -91,52 +97,81 @@ public final class NavigationSystem implements AutoCloseable {
 
     /** Creates a baseline controller using this system's default speed. */
     public EntityNavigationController controller(Entity entity) {
-        return controller(entity, movementPerTick);
-    }
-
-    /** Creates a baseline controller with an explicit movement speed. */
-    public EntityNavigationController controller(
-            Entity entity, double movementPerTick) {
-        validate(entity, movementPerTick);
-        return track(EntityNavigationController.builtin(
-                entity, service, movementPerTick,
-                controllerScheduler::submitLatest, controllerOptions));
+        return controllerBuilder(entity).build();
     }
 
     /**
-     * Creates a controller with an explicit traversal profile. This is the integration point
-     * for model-driven or proxy entities whose Minestom carrier type does not describe how the
-     * visible mob should navigate (for example an invisible parrot carrying a ground model).
+     * Starts a controller for {@code entity} with a fixed profile, another
+     * speed, a movement mode, or the entity AI's random stream. Every
+     * controller a system creates submits through its bounded admission layer
+     * and reports to its event node.
      */
-    public EntityNavigationController controller(
-            Entity entity, NavigationProfile profile, double movementPerTick) {
-        validate(entity, movementPerTick);
-        if (profile == null) {
-            throw new IllegalArgumentException("invalid controller arguments");
+    public ControllerBuilder controllerBuilder(Entity entity) {
+        return new ControllerBuilder(entity);
+    }
+
+    /**
+     * Settings for one controller. Unset settings take the built-in profile of
+     * the entity's type, re-derived from its live metadata for every search;
+     * this system's default speed; velocity-driven movement; and a
+     * start-sampling random seeded from the entity's UUID.
+     */
+    public final class ControllerBuilder {
+        private final Entity entity;
+        private NavigationProfile profile;
+        private double movementPerTick = NavigationSystem.this.movementPerTick;
+        private MovementExecutionMode executionMode =
+                MovementExecutionMode.PHYSICS_VELOCITY;
+        private RandomGenerator startNodeRandom;
+
+        private ControllerBuilder(Entity entity) {
+            if (entity == null) throw new IllegalArgumentException("entity");
+            this.entity = entity;
         }
-        return track(new EntityNavigationController(
-                entity, service, profile, movementPerTick,
-                MovementExecutionMode.PHYSICS_VELOCITY,
-                controllerScheduler::submitLatest, controllerOptions));
-    }
 
-    /**
-     * Creates a baseline controller using the mob AI's authoritative random
-     * stream for randomized start sampling.
-     */
-    public EntityNavigationController controller(
-            Entity entity, RandomGenerator random) {
-        validate(entity, movementPerTick);
-        if (random == null) throw new IllegalArgumentException("random");
-        return track(EntityNavigationController.builtin(
-                entity, service, movementPerTick, random,
-                controllerScheduler::submitLatest, controllerOptions));
-    }
+        /**
+         * A fixed traversal profile in place of the entity type's built-in
+         * one, for entities whose Minestom type does not describe how they
+         * should navigate.
+         */
+        public ControllerBuilder profile(NavigationProfile value) {
+            if (value == null) throw new IllegalArgumentException("profile");
+            profile = value;
+            return this;
+        }
 
-    private static void validate(Entity entity, double movementPerTick) {
-        if (entity == null || !Double.isFinite(movementPerTick)
-                || movementPerTick <= 0) {
-            throw new IllegalArgumentException("invalid controller arguments");
+        public ControllerBuilder movementPerTick(double value) {
+            if (!Double.isFinite(value) || value <= 0) {
+                throw new IllegalArgumentException("movementPerTick");
+            }
+            movementPerTick = value;
+            return this;
+        }
+
+        public ControllerBuilder executionMode(MovementExecutionMode value) {
+            if (value == null) throw new IllegalArgumentException("executionMode");
+            executionMode = value;
+            return this;
+        }
+
+        /**
+         * The entity AI's own random stream, used to sample small flyers'
+         * start nodes on the tick thread.
+         */
+        public ControllerBuilder startNodeRandom(RandomGenerator value) {
+            if (value == null) throw new IllegalArgumentException("startNodeRandom");
+            startNodeRandom = value;
+            return this;
+        }
+
+        public EntityNavigationController build() {
+            boolean builtin = profile == null;
+            return track(new EntityNavigationController(entity, metrics,
+                    builtin ? BuiltinNavigationProfiles.forEntity(entity) : profile,
+                    movementPerTick, builtin, executionMode,
+                    startNodeRandom != null ? startNodeRandom
+                            : NavigationRequestFactory.entityRandomOrNull(entity),
+                    controllerScheduler::submitLatest, controllerOptions));
         }
     }
 
@@ -229,20 +264,23 @@ public final class NavigationSystem implements AutoCloseable {
     }
 
     /**
-     * Replans any route this system owns that the changed block may cross.
+     * Replans any route this system owns in {@code instance} that the
+     * changed block may cross.
      *
      * <p>A controller decides for itself whether the block is near enough to
      * the stretch it has left to walk, so calling this for every block change
-     * is cheap and safe.</p>
+     * is cheap and safe. It may be called from any thread: affected
+     * controllers replan on their next {@link
+     * EntityNavigationController#tick()}, on the thread that ticks them.</p>
      */
-    public void notifyBlockChanged(Point changedBlock) {
-        if (changedBlock == null) return;
+    public void notifyBlockChanged(Instance instance, Point changedBlock) {
+        if (instance == null || changedBlock == null) return;
         List<EntityNavigationController> snapshot;
         synchronized (controllers) {
             snapshot = List.copyOf(controllers);
         }
         for (EntityNavigationController controller : snapshot) {
-            controller.onBlockChanged(changedBlock);
+            controller.blockChanged(instance, changedBlock);
         }
     }
 
@@ -250,16 +288,17 @@ public final class NavigationSystem implements AutoCloseable {
      * Subscribes to {@code instance} so block changes replan affected routes
      * without the caller wiring anything.
      *
-     * <p>Listeners run on whichever thread applied the block change, which for
-     * ordinary instance edits is the tick thread that also ticks the
-     * controllers. Returns the registered listener so it can be removed.</p>
+     * <p>Only controllers whose entity is in {@code instance} react, and they
+     * replan on their own next tick whichever thread applied the change.
+     * Returns the registered listener so it can be removed.</p>
      */
     public EventListener<InstanceBlockUpdateEvent> watchBlockChanges(
             Instance instance) {
         if (instance == null) throw new IllegalArgumentException("instance");
         EventListener<InstanceBlockUpdateEvent> listener =
                 EventListener.of(InstanceBlockUpdateEvent.class,
-                        event -> notifyBlockChanged(event.getBlockPosition()));
+                        event -> notifyBlockChanged(
+                                instance, event.getBlockPosition()));
         instance.eventNode().addListener(listener);
         return listener;
     }
@@ -317,8 +356,10 @@ public final class NavigationSystem implements AutoCloseable {
         private int queueCapacity = 256;
         private int maximumDeferredControllerRequests = 16_384;
         private int maximumConcurrentControllerSearches = Integer.MAX_VALUE;
-        private int minimumSearchStallTicks = 60;
-        private int shedBackoffTicks = 20;
+        private int minimumSearchStallTicks =
+                ControllerSchedulingOptions.DEFAULT_MINIMUM_SEARCH_STALL_TICKS;
+        private int shedBackoffTicks =
+                ControllerSchedulingOptions.DEFAULT_SHED_BACKOFF_TICKS;
         private double movementPerTick = 0.2;
         private SharedMeshOptions sharedMesh = SharedMeshOptions.DISABLED;
         private NavigationMetrics metrics;

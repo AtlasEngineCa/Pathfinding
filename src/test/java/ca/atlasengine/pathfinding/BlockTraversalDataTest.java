@@ -8,7 +8,6 @@ import net.minestom.server.instance.block.Block;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -16,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BlockTraversalDataTest {
-    private final TerrainClassifier classifier = new TerrainClassifier();
 
     @Test
     void registryTagsResolveDirectAndNestedMembers() {
@@ -78,9 +76,9 @@ class BlockTraversalDataTest {
         assertTrue(BlockTraversalData.isHandOpenableDoor(Block.OAK_DOOR));
         assertFalse(BlockTraversalData.isHandOpenableDoor(Block.IRON_DOOR));
         assertEquals(TerrainType.DOOR_WOOD_CLOSED,
-                classifier.raw(Block.COPPER_DOOR.withProperty("open", "false")));
+                TerrainClassifier.raw(Block.COPPER_DOOR.withProperty("open", "false")));
         assertEquals(TerrainType.DOOR_IRON_CLOSED,
-                classifier.raw(Block.IRON_DOOR.withProperty("open", "false")));
+                TerrainClassifier.raw(Block.IRON_DOOR.withProperty("open", "false")));
     }
 
     @Test
@@ -125,13 +123,13 @@ class BlockTraversalDataTest {
 
     @Test
     void classifierTreatsPartialCollisionOverridesAsExpected() {
-        assertEquals(TerrainType.OPEN, classifier.raw(Block.WHITE_CARPET));
-        assertEquals(TerrainType.OPEN, classifier.raw(Block.CANDLE));
-        assertEquals(TerrainType.BLOCKED, classifier.raw(Block.END_ROD));
-        assertEquals(TerrainType.BLOCKED, classifier.raw(Block.OAK_SLAB));
-        assertEquals(TerrainType.BLOCKED, classifier.raw(
+        assertEquals(TerrainType.OPEN, TerrainClassifier.raw(Block.WHITE_CARPET));
+        assertEquals(TerrainType.OPEN, TerrainClassifier.raw(Block.CANDLE));
+        assertEquals(TerrainType.BLOCKED, TerrainClassifier.raw(Block.END_ROD));
+        assertEquals(TerrainType.BLOCKED, TerrainClassifier.raw(Block.OAK_SLAB));
+        assertEquals(TerrainType.BLOCKED, TerrainClassifier.raw(
                 Block.OAK_SLAB.withProperty("waterlogged", "true")));
-        assertEquals(TerrainType.BLOCKED, classifier.raw(Block.CAKE));
-        assertEquals(TerrainType.FENCE, classifier.raw(Block.CINNABAR_WALL));
+        assertEquals(TerrainType.BLOCKED, TerrainClassifier.raw(Block.CAKE));
+        assertEquals(TerrainType.FENCE, TerrainClassifier.raw(Block.CINNABAR_WALL));
     }
 }

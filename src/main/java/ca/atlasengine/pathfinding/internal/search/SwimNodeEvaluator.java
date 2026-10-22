@@ -1,7 +1,8 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.TerrainClassification;
@@ -11,6 +12,7 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,15 +22,11 @@ public final class SwimNodeEvaluator extends SpatialNodeEvaluator {
     private static final int[][] SWIM_DIRECTIONS = buildSwimDirections();
     private static final int[][] SWIM_DIAGONAL_GATES =
             {{2, 5}, {3, 5}, {3, 4}, {2, 4}};
-    private final List<SearchNode> neighbors = new java.util.ArrayList<>(10);
+    private final List<SearchNode> neighbors = new ArrayList<>(10);
     private final SearchNode[] axialNeighbors = new SearchNode[6];
 
     public SwimNodeEvaluator(NavigationRequest request, SearchControl control) {
         super(request, control);
-    }
-
-    SwimNodeEvaluator(NavigationRequest request) {
-        this(request, SearchControl.NONE);
     }
 
     @Override
@@ -103,9 +101,9 @@ public final class SwimNodeEvaluator extends SpatialNodeEvaluator {
         Block.Getter blocks = request.blocks();
         BoundingBox box = request.boundingBox();
         TerrainClassification classification = mobProfile.classification();
-        int sizeX = Math.max(1, (int) Math.floor(box.width() + 1));
-        int sizeY = Math.max(1, (int) Math.floor(box.height() + 1));
-        int sizeZ = Math.max(1, (int) Math.floor(box.depth() + 1));
+        int sizeX = Footprint.width(box);
+        int sizeY = Footprint.height(box);
+        int sizeZ = Footprint.depth(box);
         int minX = point.blockX();
         int minY = point.blockY();
         int minZ = point.blockZ();
@@ -116,7 +114,7 @@ public final class SwimNodeEvaluator extends SpatialNodeEvaluator {
             for (int y = minY; y < minY + sizeY; y++) {
                 for (int z = minZ; z < minZ + sizeZ; z++) {
                     if (control.interruptible() && (scanned++ & 63) == 0
-                            && (control.cancelled() || control.timedOut())) {
+                            && control.interrupted()) {
                         return TerrainType.BLOCKED;
                     }
                     Block block = blocks.getBlock(

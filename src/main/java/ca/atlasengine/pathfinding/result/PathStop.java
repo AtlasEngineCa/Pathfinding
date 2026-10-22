@@ -38,5 +38,12 @@ public enum PathStop {
      * No graph search produced this result. Shed, invalid, and synthesised
      * results read this, as does any route replayed from a cached plan.
      */
-    NOT_SEARCHED
+    NOT_SEARCHED,
+    /**
+     * The open set emptied, but the search read chunks that were not loaded,
+     * which it treats as solid. This proves nothing about reachability: the
+     * same search once those chunks load may find a route. Declared last
+     * because constant order is API.
+     */
+    TERRAIN_UNLOADED
 }

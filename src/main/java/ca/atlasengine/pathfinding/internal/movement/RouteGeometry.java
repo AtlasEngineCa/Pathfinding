@@ -1,5 +1,6 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
+import ca.atlasengine.pathfinding.internal.LoadedBlocks;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
@@ -10,7 +11,6 @@ import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
 import net.minestom.server.entity.Entity;
-import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 
@@ -20,7 +20,6 @@ import net.minestom.server.instance.block.Block;
  */
 public final class RouteGeometry {
     private final MovementContext context;
-    private final TerrainClassifier terrainClassifier = new TerrainClassifier();
 
     public RouteGeometry(MovementContext context) {
         this.context = context;
@@ -30,7 +29,8 @@ public final class RouteGeometry {
         Entity entity = context.entity();
         return context.profile().groundCapabilities().climbables().enabled()
                 && entity.getInstance() != null
-                && BlockTraversalData.isClimbableAt(entity.getInstance(),
+                && BlockTraversalData.isClimbableAt(
+                LoadedBlocks.view(entity.getInstance()),
                 node.graphX(), node.graphY(), node.graphZ());
     }
 
@@ -115,14 +115,17 @@ public final class RouteGeometry {
         } else {
             Instance instance = entity.getInstance();
             if (instance == null) return false;
-            type = terrainClassifier.classifyAnchored(
-                    instance, node.graphX(), node.graphY(), node.graphZ(),
+            // The classifier reads neighbouring cells, which at the edge of
+            // the loaded area lie in chunks that are not loaded.
+            type = TerrainClassifier.classifyAnchored(
+                    LoadedBlocks.view(instance),
+                    node.graphX(), node.graphY(), node.graphZ(),
                     entity.getBoundingBox(), context.profile().mobProfile());
         }
-        return permitsCornerCut(entity.getEntityType(), type);
+        return permitsCornerCut(type);
     }
 
-    public static boolean permitsCornerCut(EntityType entityType, TerrainType type) {
+    public static boolean permitsCornerCut(TerrainType type) {
         return type != TerrainType.FIRE_IN_NEIGHBOR
                 && type != TerrainType.DAMAGING_IN_NEIGHBOR
                 && type != TerrainType.WALKABLE_DOOR
@@ -191,10 +194,11 @@ public final class RouteGeometry {
         if (context.profile().directPathIgnoresFluids()) return true;
 
         // Flying navigation treats fluids as ray blockers.
+        Block.Getter blocks = LoadedBlocks.view(instance);
         int samples = Math.max(1, (int) Math.ceil(displacement.length() * 20));
         for (int i = 0; i <= samples; i++) {
             Point point = rayStart.add(displacement.mul((double) i / samples));
-            if (instance.getBlock(point, Block.Getter.Condition.TYPE).liquid()) {
+            if (blocks.getBlock(point, Block.Getter.Condition.TYPE).liquid()) {
                 return false;
             }
         }
@@ -238,7 +242,8 @@ public final class RouteGeometry {
         Entity entity = context.entity();
         Instance instance = entity.getInstance();
         if (instance == null) return false;
-        return volumeTouchesWater(instance, entity.getPosition(),
+        return volumeTouchesWater(LoadedBlocks.view(instance),
+                entity.getPosition(),
                 entity.getBoundingBox());
     }
 

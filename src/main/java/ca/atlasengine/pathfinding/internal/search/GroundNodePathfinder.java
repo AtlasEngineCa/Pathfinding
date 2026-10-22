@@ -1,9 +1,10 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
-import ca.atlasengine.pathfinding.result.PathResult;
-import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.Points;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -12,7 +13,6 @@ import net.minestom.server.coordinate.Vec;
 import net.minestom.server.instance.block.Block;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Ground and amphibious entry points into the shared A* driver.
@@ -24,9 +24,7 @@ public final class GroundNodePathfinder {
             GroundSearchSpec spec, SearchControl control,
             List<NavigationInfluence> influences,
             EntityTraversalState entityState) {
-        if (invalid(targets)) {
-            return PathResult.INVALID_REQUEST;
-        }
+        if (!Points.allFinite(targets)) return PathResult.INVALID_REQUEST;
         MobTraversalProfile searchProfile = MobTraversalProfile.builder(
                         profile.name() + "_amphibious_search")
                 .from(profile)
@@ -51,18 +49,11 @@ public final class GroundNodePathfinder {
             GroundSearchSpec spec, SearchControl control,
             List<NavigationInfluence> influences,
             EntityTraversalState entityState) {
-        if (invalid(targets)) {
-            return PathResult.INVALID_REQUEST;
-        }
+        if (!Points.allFinite(targets)) return PathResult.INVALID_REQUEST;
         return PathSearch.find(
                 new GroundNodeEvaluator(blocks, start, box, profile,
                         influences, entityState, spec, control),
                 targets, spec.maxPathLength(), spec.reachRange(),
                 spec.maxVisited(), control);
-    }
-
-    private static boolean invalid(List<? extends Point> targets) {
-        return targets == null || targets.isEmpty()
-                || targets.stream().anyMatch(Objects::isNull);
     }
 }

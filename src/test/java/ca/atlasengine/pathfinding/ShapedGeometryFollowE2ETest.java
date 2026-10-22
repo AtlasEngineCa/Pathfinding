@@ -1,8 +1,10 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -270,8 +272,10 @@ class ShapedGeometryFollowE2ETest {
         mob.setBoundingBox(width, 1.95, width);
         mob.setInstance(instance, new Pos(0.5, SURFACE, 0.5)).join();
         EntityNavigationController controller =
-                new EntityNavigationController(mob, service,
-                        NavigationProfile.builder(NavigationMode.GROUND, MobTraversalProfile.DEFAULT, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build(), 0.2);
+                TestWorlds.controller(mob, service,
+                        NavigationProfile.builder(NavigationMode.GROUND,
+                                MobTraversalProfile.DEFAULT,
+                                GroundCapabilities.STANDARD).build(), 0.2);
         mob.controller = controller;
         controller.moveTo(new Pos(6.5, SURFACE, 0.5));
         int settled = 0;
@@ -294,9 +298,7 @@ class ShapedGeometryFollowE2ETest {
 
     /** Sealed one-wide corridor: a refused cell has no detour around it. */
     private static Instance corridor(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         for (int x = -2; x <= 10; x++) {
             for (int y = SURFACE; y <= SURFACE + 4; y++) {
                 instance.setBlock(x, y, 0, Block.AIR);

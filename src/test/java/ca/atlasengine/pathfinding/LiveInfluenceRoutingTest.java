@@ -1,10 +1,19 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationMode;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.EntityTraversalState;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
+import ca.atlasengine.pathfinding.influence.BlockAvoidanceInfluence;
 import ca.atlasengine.pathfinding.influence.EntityFearInfluence;
 import ca.atlasengine.pathfinding.influence.EntitySnapshot;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
 import ca.atlasengine.pathfinding.influence.NavigationZoneInfluence;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationMode;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -137,14 +146,16 @@ class LiveInfluenceRoutingTest {
                 .malus(TerrainType.WATER, 0)
                 .canFloat(true)
                 .build();
-        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, floating, GroundCapabilities.STANDARD).allowBreaching(false).prefersShallowWater(false).avoidSun(false).build();
+        NavigationProfile profile = NavigationProfile.builder(NavigationMode.GROUND, floating,
+                GroundCapabilities.STANDARD).build();
         return pathfinder.findPath(NavigationRequest.builder(
                                 world, new Pos(0.5, 1.2, 0.5),
                                 new Pos(4.5, 3, 0.5), BOX, profile)
                         .maxPathLength(32)
                         .maxVisitedMultiplier(8)
                         .entityState(new EntityTraversalState(
-                                false, true, Set.of(), -64))
+                                false, true, Set.of(), -64,
+                                EntityTraversalState.OVERWORLD_MAX_BUILD_HEIGHT, List.of()))
                         .influences(influences)
                         .build(),
                 SearchControl.NONE);

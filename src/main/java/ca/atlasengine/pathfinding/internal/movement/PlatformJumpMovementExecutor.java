@@ -1,9 +1,10 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
 import ca.atlasengine.pathfinding.MovementExecutionMode;
-import ca.atlasengine.pathfinding.result.PathNode;
-import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.internal.LoadedBlocks;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
 import net.minestom.server.collision.CollisionUtils;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
@@ -140,7 +141,9 @@ public final class PlatformJumpMovementExecutor implements MovementExecutor {
         Entity entity = context.entity();
         Instance instance = entity.getInstance();
         if (instance == null) return false;
-        return JumpArc.clear(instance, entity.getChunk(),
-                entity.getBoundingBox(), from, to, jump.apexClearance());
+        // Read as the search read it, so an arc leaving the loaded area is
+        // refused by both rather than throwing here.
+        return JumpArc.clear(LoadedBlocks.view(instance),
+                entity.getBoundingBox(), from, to, jump.apexClearance(), null);
     }
 }

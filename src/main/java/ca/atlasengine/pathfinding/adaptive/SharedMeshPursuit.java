@@ -1,31 +1,30 @@
 package ca.atlasengine.pathfinding.adaptive;
 
-import net.minestom.server.instance.block.Block;
-import ca.atlasengine.pathfinding.NavigationPlan;
-import ca.atlasengine.pathfinding.internal.EntityTargets;
-import ca.atlasengine.pathfinding.internal.adaptive.TargetCell;
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.EntityNavigationController;
-import ca.atlasengine.pathfinding.search.EntityTraversalState;
-import ca.atlasengine.pathfinding.profile.NavigationModifiers;
-import ca.atlasengine.pathfinding.profile.NavigationProfile;
-import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.EntityTargets;
+import ca.atlasengine.pathfinding.NavigationPlan;
 import ca.atlasengine.pathfinding.NavigationState;
 import ca.atlasengine.pathfinding.NavigationSystem;
+import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.SearchLatency;
+import ca.atlasengine.pathfinding.internal.adaptive.TargetCell;
+import ca.atlasengine.pathfinding.internal.movement.NavigationRequestFactory;
+import ca.atlasengine.pathfinding.metrics.SpliceCounts;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationModifiers;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathStatus;
-import ca.atlasengine.pathfinding.influence.NavigationInfluence;
-import ca.atlasengine.pathfinding.internal.movement.RouteSplicer;
+import ca.atlasengine.pathfinding.search.EntityTraversalState;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import net.minestom.server.coordinate.Point;
-import net.minestom.server.entity.attribute.Attribute;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.LivingEntity;
 import net.minestom.server.instance.Instance;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 
@@ -52,8 +51,6 @@ import java.util.concurrent.CompletionException;
  * search may already have read, abandons work in flight.</p>
  */
 public final class SharedMeshPursuit implements AutoCloseable {
-    private static final long MICROS_PER_TICK = 50_000;
-
     private final NavigationSystem system;
     private final Entity actor;
     private final Entity target;
@@ -173,7 +170,7 @@ public final class SharedMeshPursuit implements AutoCloseable {
     }
 
     /** Splice bookkeeping of the follower, for tests and operators. */
-    public RouteSplicer.Counts spliceCounts() {
+    public SpliceCounts spliceCounts() {
         return controller.spliceCounts();
     }
 
@@ -200,12 +197,9 @@ public final class SharedMeshPursuit implements AutoCloseable {
         }
         if (planning != null) planning.close();
         Instance instance = actor.getInstance();
-        NavigationProfile base = BuiltinNavigationProfiles.forEntity(actor);
-        NavigationProfile profile = modifiers.applyTo(base);
-        double range = actor instanceof LivingEntity living
-                ? living.getAttribute(Attribute.FOLLOW_RANGE).getValue() : 16;
-        range = Math.max(range,
-                BuiltinNavigationProfiles.requiredPathLength(actor));
+        NavigationProfile profile = modifiers.applyTo(
+                BuiltinNavigationProfiles.forEntity(actor));
+        double range = NavigationRequestFactory.searchRange(actor, true);
         // Plan from where the actor will stand when this search lands, not
         // from where it stands now. The follower arms the matching splice and
         // hands back the actor's own position whenever it cannot carry one.
@@ -213,10 +207,9 @@ public final class SharedMeshPursuit implements AutoCloseable {
         Point start = controller.planningStart(destination);
         boolean inWater = BlockTraversalData.hasWaterFluid(
                 instance.getBlock(start));
-        Set<Block> standable = profile.mobProfile().standsOnLava()
-                ? Set.of(Block.LAVA) : Set.of();
         EntityTraversalState state = new EntityTraversalState(
-                actor.isOnGround(), inWater, standable,
+                actor.isOnGround(), inWater,
+                profile.mobProfile().standableFluids(),
                 instance.getCachedDimensionType().minY(),
                 instance.getCachedDimensionType().maxY() - 1, List.of());
         NavigationRequest request = NavigationRequest.builder(
@@ -225,26 +218,25 @@ public final class SharedMeshPursuit implements AutoCloseable {
                 .maxPathLength(range).nodeSearchRange(range)
                 .influences(influences).entityState(state).build();
         requestedTargetCell = TargetCell.of(destination);
-        planning = system.sharedMesh().plan(SharedMeshRequest.builder(request).actor(actor.getUuid()).target(target.getUuid()).worldRevision(worldRevision).currentTick(currentTick).build());
+        planning = system.sharedMesh().plan(SharedMeshRequest.builder(request)
+                .actor(actor.getUuid())
+                .target(target.getUuid())
+                .worldRevision(worldRevision)
+                .currentTick(currentTick)
+                .build());
         submittedTick = currentTick;
         consumed = false;
         replanRequested = false;
     }
 
     /**
-     * Whether the search behind the current request may be replaced. Work in
-     * flight is left alone until the tail the system observes says it
-     * will never land, so replanning is paced by search completion and a
-     * chased mob keeps receiving routes however slow searches become.
+     * Whether the search behind the current request may be replaced, so
+     * replanning is paced by search completion rather than target movement.
      */
     private boolean searchSettledOrAbandoned() {
-        if (consumed) return true;
-        long waited = currentTick - submittedTick;
-        long minimumStallTicks = system.options().minimumSearchStallTicks();
-        if (waited < minimumStallTicks) return false;
-        long tail = system.metricsSnapshot().latency().p99Micros()
-                / MICROS_PER_TICK;
-        return waited >= Math.max(minimumStallTicks, tail * 4);
+        return consumed || SearchLatency.abandoned(
+                currentTick - submittedTick,
+                system.options().minimumSearchStallTicks(), system.metrics());
     }
 
     private void applyCompletedPlan() {

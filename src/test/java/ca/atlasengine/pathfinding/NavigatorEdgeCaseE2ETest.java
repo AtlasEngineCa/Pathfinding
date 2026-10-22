@@ -4,7 +4,6 @@ import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.profile.NavigationProfile;
 import ca.atlasengine.pathfinding.search.EntityTraversalState;
 import ca.atlasengine.pathfinding.search.NavigationRequest;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
@@ -20,8 +19,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Black-box navigator checks using Minestom's real entity tick and collision
@@ -186,8 +185,8 @@ class NavigatorEdgeCaseE2ETest {
 
     private static EntityNavigationController controller(
             TrackedCreature creature, AsyncEntityPathfindingService service) {
-        EntityNavigationController controller = EntityNavigationController
-                .builtin(creature, service, 0.16);
+        EntityNavigationController controller =
+                TestWorlds.builtinController(creature, service, 0.16);
         creature.controller = controller;
         return controller;
     }
@@ -231,9 +230,7 @@ class NavigatorEdgeCaseE2ETest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 3,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 3);
         return instance;
     }
 

@@ -5,8 +5,9 @@ import net.minestom.server.coordinate.Point;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockFace;
 
-import java.util.Set;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Set;
 
 /**
  * Block-family predicates used by the navigation terrain classifiers.
@@ -24,7 +25,8 @@ public final class BlockTraversalData {
             "decorated_pot", "sculk_sensor", "stonecutter", "soul_sand",
             "azalea", "flowering_azalea", "farmland", "heavy_core",
             "chorus_plant", "chest", "trapped_chest", "ender_chest",
-            "brewing_stand", "conduit", "lectern", "iron_chain", "copper_chain", "exposed_copper_chain",
+            "brewing_stand", "conduit", "lectern", "iron_chain", "copper_chain",
+            "exposed_copper_chain", 
             "weathered_copper_chain", "oxidized_copper_chain",
             "waxed_copper_chain", "waxed_exposed_copper_chain",
             "waxed_weathered_copper_chain", "waxed_oxidized_copper_chain", "composter",
@@ -67,7 +69,7 @@ public final class BlockTraversalData {
     private static final BitSet SLABS = tag("slabs");
     private static final BitSet LAND_NEVER_BLOCKS = ids(LAND_NEVER_IDS);
     private static final BitSet[] LAND_NEVER_MEMBERS =
-            java.util.Arrays.stream(LAND_NEVER_TAGS)
+            Arrays.stream(LAND_NEVER_TAGS)
                     .map(BlockTraversalData::tag).toArray(BitSet[]::new);
 
     private BlockTraversalData() {
@@ -166,6 +168,13 @@ public final class BlockTraversalData {
         return contains(RAILS, block);
     }
 
+    /** Whether an entity standing at {@code position} is on a rail. */
+    public static boolean isRailAt(Block.Getter blocks, Point position) {
+        return isRail(blocks.getBlock(position, Block.Getter.Condition.TYPE))
+                || isRail(blocks.getBlock(position.add(0, -1, 0),
+                        Block.Getter.Condition.TYPE));
+    }
+
     public static boolean isLeaves(Block block) {
         return contains(LEAVES, block);
     }
@@ -195,11 +204,7 @@ public final class BlockTraversalData {
             Block.Getter blocks, int x, int y, int z) {
         Block block = blocks.getBlock(x, y, z, Block.Getter.Condition.TYPE);
         if (isClimbable(block)) return true;
-        if (!isTrapdoor(block)
-                || !Boolean.parseBoolean(
-                property(block, "open", "false"))) {
-            return false;
-        }
+        if (!isTrapdoor(block) || !isOpen(block)) return false;
         Block below = blocks.getBlock(
                 x, y - 1, z, Block.Getter.Condition.TYPE);
         return below.compare(Block.LADDER)

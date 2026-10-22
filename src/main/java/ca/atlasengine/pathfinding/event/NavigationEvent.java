@@ -1,6 +1,7 @@
 package ca.atlasengine.pathfinding.event;
 
-import ca.atlasengine.pathfinding.NavigationSystem;import net.minestom.server.event.Event;
+import ca.atlasengine.pathfinding.NavigationSystem;
+import net.minestom.server.event.Event;
 
 /**
  * Anything a {@link ca.atlasengine.pathfinding.NavigationSystem} announces.

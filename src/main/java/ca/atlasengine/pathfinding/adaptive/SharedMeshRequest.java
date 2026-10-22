@@ -1,7 +1,7 @@
 package ca.atlasengine.pathfinding.adaptive;
 
-import ca.atlasengine.pathfinding.search.NavigationRequest;
 import ca.atlasengine.pathfinding.NavigationStrategy;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 
 /**
  * One shared-mesh planning request: the search itself plus the routing

@@ -1,10 +1,9 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.internal.Footprint;
 import ca.atlasengine.pathfinding.internal.JumpArc;
-import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
-import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
@@ -38,7 +37,7 @@ final class PlatformJumpSupport {
         if (!capabilities.enabled() || evaluator.isAmphibious()
                 || current.type == TerrainType.WATER
                 || current.type == TerrainType.LAVA
-                || !fullSupport(current)) {
+                || !fullSupport(current.x, current.y, current.z, false)) {
             return;
         }
         int maximumDistance = (int) Math.floor(
@@ -105,17 +104,9 @@ final class PlatformJumpSupport {
         if (type == TerrainType.OPEN
                 || evaluator.profile.malus(type) < 0) return true;
         BoundingBox box = evaluator.box;
-        return (GroundNodeEvaluator.footprintWidth(box) > 1
-                || GroundNodeEvaluator.footprintDepth(box) > 1)
-                && !fullSupport(x, y, z);
-    }
-
-    private boolean fullSupport(SearchNode node) {
-        return fullSupport(node.x, node.y, node.z, false);
-    }
-
-    private boolean fullSupport(int nodeX, int nodeY, int nodeZ) {
-        return fullSupport(nodeX, nodeY, nodeZ, false);
+        return (Footprint.width(box) > 1
+                || Footprint.depth(box) > 1)
+                && !fullSupport(x, y, z, false);
     }
 
     /**
@@ -125,8 +116,8 @@ final class PlatformJumpSupport {
     private boolean fullSupport(int nodeX, int nodeY, int nodeZ,
                                 boolean opened) {
         BoundingBox box = evaluator.box;
-        int width = GroundNodeEvaluator.footprintWidth(box);
-        int depth = GroundNodeEvaluator.footprintDepth(box);
+        int width = Footprint.width(box);
+        int depth = Footprint.depth(box);
         for (int x = nodeX; x < nodeX + width; x++) {
             for (int z = nodeZ; z < nodeZ + depth; z++) {
                 Block bodyCell = evaluator.blocks.getBlock(
@@ -199,9 +190,9 @@ final class PlatformJumpSupport {
     private Point waypoint(SearchNode node) {
         BoundingBox box = evaluator.box;
         return new Vec(
-                node.x + GroundNodeEvaluator.footprintWidth(box) * 0.5,
+                node.x + Footprint.width(box) * 0.5,
                 evaluator.waypointY(node.x, node.y, node.z),
-                node.z + GroundNodeEvaluator.footprintDepth(box) * 0.5);
+                node.z + Footprint.depth(box) * 0.5);
     }
 
     /**

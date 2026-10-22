@@ -3,21 +3,15 @@ package ca.atlasengine.pathfinding;
 import ca.atlasengine.pathfinding.internal.movement.RouteGeometry;
 import ca.atlasengine.pathfinding.profile.NavigationMode;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
-import net.minestom.server.entity.EntityType;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class CornerCutPolicyTest {
     @Test
-    void everyMobRetainsShorelineWaypoints() {
-        for (EntityType type : new EntityType[]{
-                EntityType.ZOMBIE, EntityType.FROG, EntityType.AXOLOTL
-        }) {
-            assertFalse(RouteGeometry.permitsCornerCut(
-                    type, TerrainType.WATER_BORDER));
-        }
+    void shorelineWaypointsAreRetained() {
+        assertFalse(RouteGeometry.permitsCornerCut(TerrainType.WATER_BORDER));
     }
 
     @Test
@@ -27,8 +21,7 @@ class CornerCutPolicyTest {
                 TerrainType.DAMAGING_IN_NEIGHBOR,
                 TerrainType.WALKABLE_DOOR
         }) {
-            assertFalse(RouteGeometry.permitsCornerCut(
-                    EntityType.ZOMBIE, type));
+            assertFalse(RouteGeometry.permitsCornerCut(type));
         }
     }
 

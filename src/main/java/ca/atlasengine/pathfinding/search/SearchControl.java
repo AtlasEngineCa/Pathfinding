@@ -31,6 +31,11 @@ public record SearchControl(CancellationToken cancellation, long deadlineNanos) 
         return System.nanoTime() >= deadlineNanos;
     }
 
+    /** Whether the search must stop now, by cancellation or deadline. */
+    public boolean interrupted() {
+        return cancelled() || timedOut();
+    }
+
     /** Whether inner evaluator loops need periodic cooperative polling. */
     public boolean interruptible() {
         return cancellation != CancellationToken.NONE

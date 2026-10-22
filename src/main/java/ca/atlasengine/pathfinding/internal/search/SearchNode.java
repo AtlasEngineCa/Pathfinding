@@ -40,5 +40,4 @@ final class SearchNode {
     boolean inOpenSet() {
         return frontierSlot >= 0;
     }
-
 }

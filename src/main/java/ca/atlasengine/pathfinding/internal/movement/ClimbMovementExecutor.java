@@ -1,6 +1,6 @@
 package ca.atlasengine.pathfinding.internal.movement;
 
-import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
+import ca.atlasengine.pathfinding.internal.BoxCollision;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Point;
 import net.minestom.server.coordinate.Vec;
@@ -75,20 +75,6 @@ public final class ClimbMovementExecutor implements MovementExecutor {
      */
     public static boolean movementClear(
             Block.Getter blocks, BoundingBox box, Point position) {
-        var iterator = box.getBlocks(position);
-        while (iterator.hasNext()) {
-            var mutable = iterator.next();
-            Block block = blocks.getBlock(mutable.blockX(),
-                    mutable.blockY(), mutable.blockZ(),
-                    Block.Getter.Condition.TYPE);
-            if (BlockTraversalData.isClimbable(block)) continue;
-            Point blockPosition = new Vec(mutable.blockX(), mutable.blockY(),
-                    mutable.blockZ());
-            if (block.collisionShape().intersectBox(
-                    position.sub(blockPosition), box)) {
-                return false;
-            }
-        }
-        return true;
+        return BoxCollision.climbClear(blocks, box, position);
     }
 }

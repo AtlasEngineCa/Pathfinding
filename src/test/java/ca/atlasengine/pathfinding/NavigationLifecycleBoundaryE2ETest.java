@@ -1,22 +1,22 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.event.RouteReplanEvent;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshOptions;
 import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
+import ca.atlasengine.pathfinding.event.RouteReplanEvent;
 import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
 import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.result.PathStatus;
+import net.kyori.adventure.key.Key;
 import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
-import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityCreature;
 import net.minestom.server.entity.EntityType;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.world.DimensionType;
 import net.minestom.testing.Env;
 import net.minestom.testing.EnvTest;
-import net.kyori.adventure.key.Key;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -41,9 +41,7 @@ class NavigationLifecycleBoundaryE2ETest {
 
     @Test
     void groundNavigationCrossesFromNegativeToPositiveChunks(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         EntityCreature mob = spawn(instance, new Pos(-6.5, 40, -0.5));
 
         try (var service = new AsyncEntityPathfindingService(1, 8)) {
@@ -64,9 +62,7 @@ class NavigationLifecycleBoundaryE2ETest {
 
     @Test
     void staleRouteBlockedByWallGetsOneSearchAndRecovers(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         EntityCreature mob = spawn(instance, new Pos(0.5, 40, 0.5));
         for (int y = 40; y <= 42; y++) {
             instance.setBlock(4, y, 0, Block.STONE);
@@ -82,12 +78,12 @@ class NavigationLifecycleBoundaryE2ETest {
             List<PathNode> staleStraightRoute = new ArrayList<>();
             for (int x = 0; x <= 8; x++) {
                 staleStraightRoute.add(new PathNode(x + 0.5, 40, 0.5,
-                        PathNode.Movement.WALK));
+                        PathNode.Movement.WALK, x, 40, 0));
             }
             controller.follow(new NavigationPlan(mob.getPosition(), target,
                     mob.getBoundingBox(),
                     BuiltinNavigationProfiles.forEntity(mob), PathStatus.FOUND,
-                    staleStraightRoute, staleStraightRoute.size(), 0));
+                    staleStraightRoute, staleStraightRoute.size(), 0, List.of()));
 
             runUntilTerminal(env, controller, 900);
 
@@ -231,7 +227,7 @@ class NavigationLifecycleBoundaryE2ETest {
 
     private static EntityNavigationController controller(
             EntityCreature mob, AsyncEntityPathfindingService service) {
-        return new EntityNavigationController(mob, service,
+        return TestWorlds.controller(mob, service,
                 BuiltinNavigationProfiles.forEntity(mob), SPEED);
     }
 
@@ -242,9 +238,7 @@ class NavigationLifecycleBoundaryE2ETest {
     }
 
     private static Instance preparedFlat(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 2,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 2);
         return instance;
     }
 

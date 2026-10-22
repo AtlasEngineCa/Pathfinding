@@ -1,10 +1,16 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
-import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
-import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
 import ca.atlasengine.pathfinding.NavigationPlan;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshHandle;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshPolicy;
+import ca.atlasengine.pathfinding.adaptive.SharedMeshSource;
+import ca.atlasengine.pathfinding.internal.adaptive.SharedMeshCoordinator;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -77,9 +83,13 @@ public class AdaptiveNavigationBenchmark {
                     .promotionRequests(2).retentionRequests(1)
                     .maximumNodesPerRegion(1_024).build();
             unpromoted = new SharedMeshCoordinator(
-                    (actor, ignored) -> CompletableFuture.completedFuture(plan), cold);
+                    (actor,
+                            ignored) -> CompletableFuture.completedFuture(plan), cold,
+                            new NavigationMetrics());
             promoted = new SharedMeshCoordinator(
-                    (actor, ignored) -> CompletableFuture.completedFuture(plan), hot);
+                    (actor,
+                            ignored) -> CompletableFuture.completedFuture(plan), hot,
+                            new NavigationMetrics());
             promoted.request("seed-1", "target", 1, 0, request).plan().join();
             promoted.request("seed-2", "target", 1, 1, request).plan().join();
             if (promoted.stats().promotedRegions() != 1) {
@@ -95,7 +105,7 @@ public class AdaptiveNavigationBenchmark {
             }
             return new NavigationPlan(
                     request.start(), request.target(), box, profile,
-                    PathStatus.FOUND, nodes, nodes.size(), nodes.size() * 8);
+                    PathStatus.FOUND, nodes, nodes.size(), nodes.size() * 8, List.of());
         }
     }
 }

@@ -1,8 +1,18 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.NavigationProfile;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.internal.JumpArc;
 import ca.atlasengine.pathfinding.internal.movement.BlockManipulator;
 import ca.atlasengine.pathfinding.internal.movement.ClimbMovementExecutor;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.NavigationProfile;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
@@ -263,7 +273,10 @@ class OpenableFootprintTest {
                 new Pos(center, 1, center),
                 new Pos(far + center, 1, center),
                 box, openable, GroundCapabilities.STANDARD.withPlatformJump(
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(8).maxRise(0).maxDrop(0).apexClearance(APEX).build())));
+                        PlatformJumpCapabilities.builder()
+                                .maxHorizontalDistance(8)
+                                .apexClearance(APEX)
+                                .build())));
     }
 
     // -------------------------------------------------------------- helpers

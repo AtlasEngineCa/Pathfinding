@@ -1,6 +1,12 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.internal.JumpArc;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.profile.PlatformJumpCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.SearchControl;
 import ca.atlasengine.pathfinding.terrain.BlockManipulationCapabilities;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
@@ -101,11 +107,15 @@ class PlatformJumpDoorTest {
                 .set(2, 2, 0, CLOSED_GATE.withProperty(
                         "open", String.valueOf(open)));
         PlatformJumpCapabilities jump =
-                PlatformJumpCapabilities.builder().maxHorizontalDistance(4).maxRise(0).maxDrop(0).apexClearance(1.5).build();
+                PlatformJumpCapabilities.builder()
+                        .maxHorizontalDistance(4)
+                        .apexClearance(1.5)
+                        .build();
         Pos start = new Pos(0.5, 1, 0.5);
         Pos goal = new Pos(4.5, 1, 0.5);
 
-        PathResult result = new DiscreteGroundPathfinder().findPath(world, start, goal, NARROW, OPENER, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, start, goal, NARROW, OPENER, 48, 8,
+                GroundCapabilities.STANDARD.withPlatformJump(jump), SearchControl.NONE);
 
         assertEquals(open, result.found(), result.nodes()::toString);
         assertEquals(open, JumpArc.clear(world, NARROW, start, goal, 1.5,
@@ -176,8 +186,14 @@ class PlatformJumpDoorTest {
                 .set(3, 1, 0, CLOSED_GATE)
                 .set(5, 0, 0, Block.STONE);
 
-        PathResult result = new DiscreteGroundPathfinder().findPath(world, new Pos(0.5, 1, 0.5), new Pos(5.5, 1, 0.5), NARROW, MobTraversalProfile.DEFAULT, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(5).maxRise(0).maxDrop(0).apexClearance(1).build()), SearchControl.NONE);
+        PathResult result = GroundSearches.find(world, new Pos(0.5, 1,
+                0.5), new Pos(5.5, 1,
+                        0.5), NARROW, MobTraversalProfile.DEFAULT, 48, 8,
+                        GroundCapabilities.STANDARD.withPlatformJump(
+                        PlatformJumpCapabilities.builder()
+                                .maxHorizontalDistance(5)
+                                .apexClearance(1)
+                                .build()), SearchControl.NONE);
 
         assertTrue(result.nodes().stream().noneMatch(node ->
                 node.graphX() == 3), result.nodes()::toString);
@@ -195,8 +211,17 @@ class PlatformJumpDoorTest {
     private List<PathNode> scanned(int span, int rise, double apex,
                                    int placement, Block obstacle,
                                    MobTraversalProfile profile) {
-        return new DiscreteGroundPathfinder().findPath(fixture(span, rise, placement, obstacle, profile), new Pos(0.5, 1, 0.5), new Pos(span + 0.5, rise + 1, 0.5), NARROW, profile, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(
-                                PlatformJumpCapabilities.builder().maxHorizontalDistance(span).maxRise(Math.max(0, rise)).maxDrop(Math.max(0, -rise)).apexClearance(apex).build()), SearchControl.NONE)
+        return GroundSearches.find(fixture(span, rise, placement, obstacle,
+                profile), new Pos(0.5, 1,
+                        0.5), new Pos(span + 0.5, rise + 1,
+                                0.5), NARROW, profile, 48, 8,
+                                GroundCapabilities.STANDARD.withPlatformJump(
+                                PlatformJumpCapabilities.builder()
+                                        .maxHorizontalDistance(span)
+                                        .maxRise(Math.max(0, rise))
+                                        .maxDrop(Math.max(0, -rise))
+                                        .apexClearance(apex)
+                                        .build()), SearchControl.NONE)
                 .nodes();
     }
 
@@ -262,7 +287,12 @@ class PlatformJumpDoorTest {
     }
 
     private PathResult jump(TestWorld world, MobTraversalProfile profile) {
-        return new DiscreteGroundPathfinder().findPath(world, new Pos(0.5, 1, 0.5), new Pos(3.5, 1, 0.5), NARROW, profile, GroundSearchLimits.builder().maxPathLength(48).reachRange(0).maxVisitedMultiplier(8).build(), GroundCapabilities.STANDARD.withPlatformJump(
-                        PlatformJumpCapabilities.builder().maxHorizontalDistance(3).maxRise(0).maxDrop(0).apexClearance(1).build()), SearchControl.NONE);
+        return GroundSearches.find(world, new Pos(0.5, 1,
+                0.5), new Pos(3.5, 1,
+                        0.5), NARROW, profile, 48, 8, GroundCapabilities.STANDARD.withPlatformJump(
+                        PlatformJumpCapabilities.builder()
+                                .maxHorizontalDistance(3)
+                                .apexClearance(1)
+                                .build()), SearchControl.NONE);
     }
 }

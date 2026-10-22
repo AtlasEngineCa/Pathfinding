@@ -32,14 +32,6 @@ public final class PathNode {
     private final int graphY;
     private final int graphZ;
 
-    /**
-     * Compatibility constructor for physical-coordinate pathfinders.
-     */
-    public PathNode(double x, double y, double z, Movement movement) {
-        this(x, y, z, movement,
-                (int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
-    }
-
     public PathNode(double x, double y, double z, Movement movement,
                     int graphX, int graphY, int graphZ) {
         this.x = x;

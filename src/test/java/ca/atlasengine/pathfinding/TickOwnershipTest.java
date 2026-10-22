@@ -1,7 +1,6 @@
 package ca.atlasengine.pathfinding;
 
 import ca.atlasengine.pathfinding.adaptive.SharedMeshPursuit;
-import net.minestom.server.coordinate.ChunkRange;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.Entity;
 import net.minestom.server.entity.EntityCreature;
@@ -50,9 +49,7 @@ class TickOwnershipTest {
 
     @Test
     void pursuitAdvancesOncePerTickIdHoweverManyPlacesDriveIt(Env env) {
-        Instance instance = env.createFlatInstance();
-        ChunkRange.chunksInRange(0, 0, 1,
-                (x, z) -> instance.loadChunk(x, z).join());
+        Instance instance = TestWorlds.loadedFlat(env, 1);
         EntityCreature actor = new EntityCreature(EntityType.ZOMBIE);
         Entity target = new Entity(EntityType.ARMOR_STAND);
         target.setNoGravity(true);

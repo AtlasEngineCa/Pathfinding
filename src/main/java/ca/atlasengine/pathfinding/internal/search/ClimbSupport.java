@@ -1,9 +1,11 @@
 package ca.atlasengine.pathfinding.internal.search;
 
-import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
-import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.influence.InfluenceResult;
 import ca.atlasengine.pathfinding.influence.NavigationInfluence;
+import ca.atlasengine.pathfinding.internal.BoxCollision;
+import ca.atlasengine.pathfinding.internal.Footprint;
+import ca.atlasengine.pathfinding.profile.ClimbableCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
 import ca.atlasengine.pathfinding.terrain.BlockTraversalData;
 import ca.atlasengine.pathfinding.terrain.TerrainType;
 import net.minestom.server.collision.BoundingBox;
@@ -121,14 +123,15 @@ final class ClimbSupport {
         BoundingBox box = evaluator.box;
         return new Vec(
                 waypointX(x, y, z,
-                        GroundNodeEvaluator.footprintWidth(box) * 0.5),
+                        Footprint.width(box) * 0.5),
                 evaluator.waypointY(x, y, z),
                 waypointZ(x, y, z,
-                        GroundNodeEvaluator.footprintDepth(box) * 0.5));
+                        Footprint.depth(box) * 0.5));
     }
 
     /**
-     * Judges one climb node against the world the follower will sweep at it.
+     * Judges one climb node against the world the follower will sweep at it,
+     * by the follower's own climb rule.
      * The follower opens the cells its box reaches as it drives to the
      * waypoint, so those are read in the states it opens them into. No other
      * cell is: nothing opens a block the mob never stands over, and reading
@@ -138,19 +141,7 @@ final class ClimbSupport {
         BoundingBox box = evaluator.box;
         Block.Getter blocks = evaluator.profile.openedFootprintView(
                 evaluator.blocks, position, box);
-        var iterator = box.getBlocks(position);
-        while (iterator.hasNext()) {
-            var mutable = iterator.next();
-            Block block = blocks.getBlock(mutable.blockX(),
-                    mutable.blockY(), mutable.blockZ(),
-                    Block.Getter.Condition.TYPE);
-            if (BlockTraversalData.isClimbable(block)) continue;
-            Point blockPosition = new Vec(mutable.blockX(),
-                    mutable.blockY(), mutable.blockZ());
-            if (block.collisionShape().intersectBox(
-                    position.sub(blockPosition), box)) return true;
-        }
-        return false;
+        return !BoxCollision.climbClear(blocks, box, position);
     }
 
     boolean anchoredAt(int x, int y, int z) {

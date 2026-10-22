@@ -1,6 +1,15 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;import ca.atlasengine.pathfinding.profile.GroundCapabilities;import ca.atlasengine.pathfinding.result.PathNode;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.result.PathStatus;import ca.atlasengine.pathfinding.search.CancellationSource;import ca.atlasengine.pathfinding.search.DiscreteGroundPathfinder;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.GroundSearchLimits;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
+import ca.atlasengine.pathfinding.profile.BuiltinNavigationProfiles;
+import ca.atlasengine.pathfinding.profile.GroundCapabilities;
+import ca.atlasengine.pathfinding.result.PathNode;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.result.PathStatus;
+import ca.atlasengine.pathfinding.search.CancellationSource;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+import ca.atlasengine.pathfinding.terrain.MobTraversalProfile;
 import net.minestom.server.collision.BoundingBox;
 import net.minestom.server.coordinate.Pos;
 import net.minestom.server.entity.EntityType;
@@ -23,7 +32,9 @@ class SearchCancellationTest {
     @Test
     void cancellingMidSearchReturnsTheBestPartialRoute() {
         TestWorld world = flat();
-        PathResult result = new DiscreteGroundPathfinder().findPath(cancellingAfter(world, 2000), new Pos(-30.5, 1, 0.5), new Pos(30.5, 1, 0.5), BOX, MobTraversalProfile.DEFAULT, GroundSearchLimits.ofPathLength(100), GroundCapabilities.STANDARD, control());
+        PathResult result = GroundSearches.find(cancellingAfter(world, 2000),
+                new Pos(-30.5, 1, 0.5), new Pos(30.5, 1, 0.5), BOX, MobTraversalProfile.DEFAULT,
+                100, 1, GroundCapabilities.STANDARD, control());
 
         assertEquals(PathStatus.CANCELLED, result.status());
         assertFalse(result.nodes().isEmpty());
@@ -55,7 +66,9 @@ class SearchCancellationTest {
     @Test
     void cancellingBeforeTheFirstExpansionStillReportsTheStartNode() {
         TestWorld world = flat();
-        PathResult result = new DiscreteGroundPathfinder().findPath(cancellingAfter(world, 0), new Pos(-30.5, 1, 0.5), new Pos(30.5, 1, 0.5), BOX, MobTraversalProfile.DEFAULT, GroundSearchLimits.ofPathLength(100), GroundCapabilities.STANDARD, control());
+        PathResult result = GroundSearches.find(cancellingAfter(world, 0), new Pos(-30.5, 1, 0.5),
+                new Pos(30.5, 1, 0.5), BOX, MobTraversalProfile.DEFAULT, 100, 1,
+                GroundCapabilities.STANDARD, control());
 
         assertEquals(PathStatus.CANCELLED, result.status());
         assertEquals(1, result.nodes().size(), result::toString);

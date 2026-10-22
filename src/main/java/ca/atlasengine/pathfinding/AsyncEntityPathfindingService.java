@@ -1,6 +1,13 @@
 package ca.atlasengine.pathfinding;
 
-import ca.atlasengine.pathfinding.metrics.NavigationMetrics;import ca.atlasengine.pathfinding.result.PathResult;import ca.atlasengine.pathfinding.search.CancellationSource;import ca.atlasengine.pathfinding.search.EntityPathfinder;import ca.atlasengine.pathfinding.search.NavigationRequest;import ca.atlasengine.pathfinding.search.SearchControl;import java.util.Set;
+import ca.atlasengine.pathfinding.metrics.NavigationMetrics;
+import ca.atlasengine.pathfinding.result.PathResult;
+import ca.atlasengine.pathfinding.search.CancellationSource;
+import ca.atlasengine.pathfinding.search.EntityPathfinder;
+import ca.atlasengine.pathfinding.search.NavigationRequest;
+import ca.atlasengine.pathfinding.search.SearchControl;
+
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,31 +48,17 @@ public final class AsyncEntityPathfindingService implements AutoCloseable {
     private final ConcurrentHashMap<Object, PathTask> latest = new ConcurrentHashMap<>();
 
     public AsyncEntityPathfindingService(int parallelism, int queueCapacity) {
-        this(new EntityPathfinder(), parallelism, queueCapacity);
+        this(parallelism, queueCapacity, new NavigationMetrics());
     }
 
     /** Records into a recorder shared with other services or coordinators. */
     public AsyncEntityPathfindingService(int parallelism, int queueCapacity,
                                           NavigationMetrics metrics) {
-        this(new EntityPathfinder(), parallelism, queueCapacity, metrics);
-    }
-
-    public AsyncEntityPathfindingService(EntityPathfinder pathfinding,
-                                          int parallelism,
-                                          int queueCapacity) {
-        this(pathfinding, parallelism, queueCapacity, new NavigationMetrics());
-    }
-
-    public AsyncEntityPathfindingService(EntityPathfinder pathfinding,
-                                          int parallelism,
-                                          int queueCapacity,
-                                          NavigationMetrics metrics) {
-        if (pathfinding == null) throw new IllegalArgumentException("pathfinding cannot be null");
         if (metrics == null) throw new IllegalArgumentException("metrics cannot be null");
         if (parallelism <= 0 || queueCapacity <= 0) {
             throw new IllegalArgumentException("parallelism and queueCapacity must be positive");
         }
-        this.pathfinding = pathfinding;
+        this.pathfinding = new EntityPathfinder();
         this.metrics = metrics;
         this.queueCapacity = queueCapacity;
         ThreadPoolExecutor pool = new ThreadPoolExecutor(

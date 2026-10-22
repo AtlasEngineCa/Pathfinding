@@ -1,6 +1,8 @@
 package ca.atlasengine.pathfinding.result;
 
-import ca.atlasengine.pathfinding.NavigationPlan;import java.util.List;
+import ca.atlasengine.pathfinding.NavigationPlan;
+
+import java.util.List;
 
 /**
  * An immutable search result with basic work metrics for regression testing.
